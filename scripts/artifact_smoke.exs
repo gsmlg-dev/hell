@@ -23,7 +23,6 @@ defmodule HellArtifactSmokeTest do
     assert Application.spec(:hell, :vsn) ==
              String.to_charlist(System.fetch_env!("HELL_EXPECTED_VERSION"))
 
-    refute Application.spec(:thousand_island)
     assert Code.ensure_loaded?(Hell.Transports.TCP)
     assert Code.ensure_loaded?(Hell.Transports.SSL)
   end

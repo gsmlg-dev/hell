@@ -154,7 +154,6 @@ Remaining upstream references are intentional:
 - The entire historical changelog body, byte-identical after an explanatory header.
 - Historical timeout documentation and original third-party Bandit links/regression URL.
 - Consumer migration instructions describing old identities.
-- The artifact test's negative `:thousand_island` application assertion.
 - Original artwork assets, byte-identical, retained without current README/ExDoc use.
 - Release-toolchain provenance and explicit prohibition on publishing upstream's package.
 
