@@ -80,6 +80,15 @@ fixture uses an absolute elapsed-time schedule with catch-up instead of adding
 scheduler delay after every send. It sends an `A` every 2ms because the existing
 `Enum.join/1` assertion renders each received byte as `"65"`; the 500ms server
 timeout, 1000ms client receive timeout and 400..600 character bounds remain.
+A [diagnostic run](https://github.com/gsmlg-dev/hell/actions/runs/38614069991)
+recorded 50ms and 80ms sleeps lasting 111.880ms and 132.398ms, beyond the 100ms
+server deadline, and a timeout callback 1.334ms before log capture began.
+The two ping loops now use absolute monotonic deadlines with a test-only
+cooperative `:erlang.yield/0` wait helper instead of per-ping sleeps. Their
+schedules remain six pings over 300ms and four pings over 320ms. Timer-reset log
+capture starts before connection and all ping traffic; the original socket,
+closure and log assertions remain. These deadlines cannot guarantee timely
+execution during OS suspension.
 These changes affect test fixtures only. There are no test filters, failure
 retries, runtime changes or altered socket timeouts. Historical failures remain
 part of the investigation record; the fixture repair does not establish that

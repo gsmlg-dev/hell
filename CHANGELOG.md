@@ -9,7 +9,8 @@
 - Refresh CI cache identity for the resolved toolchain to prevent reuse of
   incompatible Dialyzer PLTs.
 - Synchronize the synchronous receive-timeout fixture and use an elapsed-time
-  send schedule to avoid accumulated timer drift in handler tests on macOS.
+  send schedule and absolute ping deadlines in handler tests on macOS; start
+  timer-reset log capture before connection and traffic.
 
 Runtime behavior, dependency versions and the Elixir `>= 1.18.0` requirement are
 unchanged. Publication requires workflow validation and the explicit gates
