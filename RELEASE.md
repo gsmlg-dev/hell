@@ -27,7 +27,7 @@ combinations to match the new minimum and tests these six pairs on each OS:
 | `1.18.x` | `26.x`, `27.x`, `28.x` |
 | `1.19.0` | `26.x`, `27.x`, `28.x` |
 
-These run on `ubuntu-24.04` and `macos-26` (ARM64).
+These run on `ubuntu-24.04` and `macos-26-intel` (x64).
 Upstream's exclusions for `1.19.x` did not match its `1.19.0` matrix entry, so
 removing those ineffective exclusions preserves the actual coverage. No claim
 is made that every declared supported version is exercised by this matrix.
@@ -35,15 +35,24 @@ is made that every declared supported version is exercised by this matrix.
 Runner/toolchain compatibility was inspected on 2026-10-14:
 
 - Pinned [`setup-beam v1.24.1`](https://github.com/erlef/setup-beam/tree/54075bcc5e249e4758d363f27d099f55d843f124)
-  documents macOS 26 on ARM64 with OTP 25–29. Its source resolves ARM64 through
-  `aarch64-apple-darwin.csv` and uses `OTP-<version>-macos-arm64.tar.gz` builds;
-  the OTP 26.2.5.15 ARM64 asset and current OTP 26–28 build listings were checked.
-- [`runner-images@573fa3a`](https://github.com/actions/runner-images/blob/573fa3ad959907712ce8bf6a5f91ab82b03e7f2d/README.md)
-  identifies `macos-26` as ARM64 and the newest stable macOS image. The test job
-  verifies `RUNNER_ARCH=ARM64` and prints the resolved Elixir/OTP versions.
+  documents macOS 26 on x86_64 with OTP 25–29. Its source resolves Intel builds
+  through `x86_64-apple-darwin.csv` and uses `OTP-<version>-macos-amd64.tar.gz`;
+  current OTP 26.2.5.21, 27.3.4.18 and 28.5.0.7 Intel release assets were checked.
+- The official [runner-images inventory](https://github.com/actions/runner-images/blob/main/README.md)
+  identifies `macos-26-intel` as x64 on the newest stable macOS 26 image. The test
+  job verifies `RUNNER_ARCH=X64` and prints the resolved Elixir/OTP versions.
 - The Hex Elixir build listing includes OTP 26/27/28 builds for current
-  `1.18.x` and exact `1.19.0`. This inspection is
-  compatibility evidence; remote CI on this migration has not been run.
+  `1.18.x` and exact `1.19.0`. This establishes toolchain availability;
+  successful Intel CI still requires validation on the final commit.
+
+The initial `macos-26` ARM64 matrix failed timing-sensitive handler tests at
+lines 619, 657, 788 and 931, while all six Linux jobs passed. Tests at 788 and
+931 were also reproduced as failures against the upstream baseline locally;
+619 and 657 are newly observed and remain unresolved on ARM64. Their test
+bodies and relevant runtime code are unchanged apart from the identity migration.
+The Intel runner changes the CI environment while retaining all six toolchain
+pairs, the full test suite and every assertion. It does not establish ARM64
+correctness or guarantee that Intel CI will pass.
 
 Actions are pinned to inspected stable release commits: checkout v7.0.1,
 cache v6.1.0, upload-artifact v7.0.2 and setup-beam v1.24.1.
