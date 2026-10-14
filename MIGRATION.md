@@ -106,7 +106,8 @@ The release documentation destination is [Hell 0.1.0 on
 HexDocs](https://hexdocs.pm/hell/0.1.0/), available after successful publication.
 Build local documentation with `mix docs`.
 [CHANGELOG.md](CHANGELOG.md) deliberately retains historical upstream module,
-telemetry and release names. The original MIT [LICENSE](https://github.com/gsmlg-dev/hell/blob/main/LICENSE) is unchanged.
+telemetry and release names. The [LICENSE](https://github.com/gsmlg-dev/hell/blob/main/LICENSE) retains all MIT terms and the upstream copyright notice,
+adding copyright (c) 2026 GSMLG Limited for Hell fork contributions.
 
 The first release requires successful CI and explicit publication through the
 gated workflow described in [RELEASE.md](RELEASE.md). These migration instructions

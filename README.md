@@ -191,6 +191,7 @@ are available in this checkout.
 
 ## License
 
-MIT. The original [license](LICENSE) and copyright notice for Mat Trudel are
-preserved. Hell is derived from Thousand Island; historical upstream releases
-and contributor credits remain in [CHANGELOG.md](CHANGELOG.md).
+MIT. The [license](LICENSE) retains the original copyright notice for Mat Trudel
+and all MIT terms. Hell fork contributions are copyright (c) 2026 GSMLG Limited.
+Hell is derived from Thousand Island; historical upstream releases and contributor
+credits remain in [CHANGELOG.md](CHANGELOG.md).
