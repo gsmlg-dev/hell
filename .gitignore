@@ -29,3 +29,6 @@ hell-*.tar
 
 # ElixirLS
 /.elixir_ls
+
+# Local Git worktrees
+/.trees/
