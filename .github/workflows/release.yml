@@ -1,0 +1,59 @@
+name: Hell release preparation (publication disabled)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        required: true
+        description: Existing mix.exs release version (e.g. 0.1.0)
+      git_ref:
+        type: string
+        required: true
+        default: main
+        description: main or the trusted vVERSION tag to prepare
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  prepare:
+    if: github.repository == 'gsmlg-dev/hell' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_REF: ${{ inputs.git_ref }}
+    steps:
+      - name: Validate inputs before checkout
+        run: |
+          [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$RELEASE_REF" == main || "$RELEASE_REF" == "v$RELEASE_VERSION" ]]
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.git_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          elixir-version: '1.19.x'
+          otp-version: '28.x'
+      - name: Validate repository and release identity
+        run: mix run --no-compile --no-deps-check --no-start scripts/check_release.exs
+      - run: mix deps.get
+      - run: mix deps.compile
+      - run: mix compile --warnings-as-errors
+      - run: mix format --check-formatted
+      - run: mix test
+        env:
+          MIX_ENV: test
+      - run: mix docs
+      - run: mix hex.build
+      - name: Validate built package through its public API
+        run: bash scripts/artifact_smoke.sh "hell-$RELEASE_VERSION.tar" "$RELEASE_VERSION"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: hell-${{ inputs.version }}-candidate
+          path: |
+            hell-${{ inputs.version }}.tar
+            doc/
+          if-no-files-found: error

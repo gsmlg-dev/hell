@@ -1,72 +1,81 @@
-![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo.png#gh-light-mode-only)
-![Thousand Island](https://github.com/mtrudel/thousand_island/raw/main/assets/readme_logo-white.png#gh-dark-mode-only)
+# Hell
 
-[![Build Status](https://github.com/mtrudel/thousand_island/workflows/Elixir%20CI/badge.svg)](https://github.com/mtrudel/thousand_island/actions)
-[![Docs](https://img.shields.io/badge/api-docs-green.svg?style=flat)](https://thousand-island.hexdocs.pm)
-[![Hex.pm](https://img.shields.io/hexpm/v/thousand_island.svg?style=flat&color=blue)](https://hex.pm/packages/thousand_island)
+[![CI](https://github.com/gsmlg-dev/hell/actions/workflows/ci.yml/badge.svg)](https://github.com/gsmlg-dev/hell/actions/workflows/ci.yml)
+[![Tests](https://github.com/gsmlg-dev/hell/actions/workflows/test.yml/badge.svg)](https://github.com/gsmlg-dev/hell/actions/workflows/test.yml)
 
-Thousand Island is a modern, pure Elixir socket server, inspired heavily by
+Hell is a fork of [Thousand Island](https://github.com/mtrudel/thousand_island),
+originally developed by Mat Trudel and contributors. This identity migration is
+based on upstream commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0` and preserves
+upstream runtime behavior. The Elixir namespace is `Hell`; the OTP application
+and intended Hex package are `hell`; the target repository is
+[`gsmlg-dev/hell`](https://github.com/gsmlg-dev/hell).
+
+The upstream baseline version is `1.5.0`; the first planned Hell release is
+`0.1.0` and remains unpublished. Hell requires Elixir `>= 1.18.0`. No historical
+Thousand Island release is being relabeled as a Hell release. See
+[MIGRATION.md](MIGRATION.md) before replacing an existing Thousand Island dependency.
+
+Hell is a modern, pure Elixir socket server, inspired heavily by
 [ranch](https://github.com/ninenines/ranch). It aims to be easy to understand
 and reason about, while also being at least as stable and performant as alternatives.
-Informal tests place ranch and Thousand Island at roughly the same level of
-performance and overhead; short of synthetic scenarios on the busiest of servers,
-they perform equally for all intents and purposes.
+Upstream's informal tests placed ranch and Thousand Island at roughly the same
+level of performance and overhead; this fork preserves that implementation.
 
-Thousand Island is written entirely in Elixir, and is nearly dependency-free (the
+Hell is written entirely in Elixir, and is nearly dependency-free (the
 only library used is [telemetry](https://github.com/beam-telemetry/telemetry)).
 The application strongly embraces OTP design principles, and emphasizes readable,
-simple code. The hope is that as much as Thousand Island is capable of backing
+simple code. The hope is that as much as Hell is capable of backing
 the most demanding of services, it is also useful as a simple and approachable
 reference for idiomatic OTP design patterns.
 
 ## Usage
 
-Thousand Island is implemented as a supervision tree which is intended to be hosted
-inside a host application, often as a dependency embedded within a higher-level
-protocol library such as [Bandit](https://github.com/mtrudel/bandit). Aside from
-supervising the Thousand Island process tree, applications interact with Thousand
-Island primarily via the
-[`ThousandIsland.Handler`](https://thousand-island.hexdocs.pm/ThousandIsland.Handler.html) behaviour.
+Hell is implemented as a supervision tree which is intended to be hosted
+inside a host application or a higher-level protocol library. Upstream Thousand
+Island is used by libraries such as [Bandit](https://github.com/mtrudel/bandit);
+those integrations require an explicit migration to use Hell. Aside from
+supervising the Hell process tree, applications interact with Hell primarily via the
+[`Hell.Handler`](lib/hell/handler.ex) behaviour.
 
 ### Handlers
 
-The [`ThousandIsland.Handler`](https://thousand-island.hexdocs.pm/ThousandIsland.Handler.html) behaviour defines the interface that Thousand Island
-uses to pass [`ThousandIsland.Socket`](https://thousand-island.hexdocs.pm/ThousandIsland.Socket.html)s up to the application level; together they
-form the primary interface that most applications will have with Thousand Island.
-Thousand Island comes with a few simple protocol handlers to serve as examples;
-these can be found in the [examples](https://github.com/mtrudel/thousand_island/tree/main/examples)
+The [`Hell.Handler`](lib/hell/handler.ex) behaviour defines the interface that Hell
+uses to pass [`Hell.Socket`](lib/hell/socket.ex)s up to the application level; together they
+form the primary interface that most applications will have with Hell.
+Hell comes with a few simple protocol handlers to serve as examples;
+these can be found in the [examples](https://github.com/gsmlg-dev/hell/tree/main/examples)
 folder of this project. A simple implementation would look like this:
 
 ```elixir
 defmodule Echo do
-  use ThousandIsland.Handler
+  use Hell.Handler
 
-  @impl ThousandIsland.Handler
+  @impl Hell.Handler
   def handle_data(data, socket, state) do
-    ThousandIsland.Socket.send(socket, data)
+    Hell.Socket.send(socket, data)
     {:continue, state}
   end
 end
 
-{:ok, pid} = ThousandIsland.start_link(port: 1234, handler_module: Echo)
+{:ok, pid} = Hell.start_link(port: 1234, handler_module: Echo)
 ```
 
-For more information, please consult the [`ThousandIsland.Handler`](https://thousand-island.hexdocs.pm/ThousandIsland.Handler.html) documentation.
+For more information, please consult the [`Hell.Handler`](lib/hell/handler.ex) documentation.
 
-### Starting a Thousand Island Server
+### Starting a Hell Server
 
-Thousand Island servers exist as a supervision tree, and are started by a call
+Hell servers exist as a supervision tree, and are started by a call
 to
-[`ThousandIsland.start_link/1`](https://thousand-island.hexdocs.pm/ThousandIsland.html#start_link/1).
+[`Hell.start_link/1`](lib/hell.ex).
 There are a number of options supported; for a complete description, consult the
-[Thousand Island
-docs](https://thousand-island.hexdocs.pm/ThousandIsland.html#t:options/0).
+[Hell
+docs](lib/hell.ex).
 
 ### Connection Draining & Shutdown
 
-The `ThousandIsland.Server` process is just a standard `Supervisor`, so all the
+The `Hell.Server` process is just a standard `Supervisor`, so all the
 usual rules regarding shutdown and shutdown timeouts apply. Immediately upon
-beginning the shutdown sequence the `ThousandIsland.ShutdownListener` will cause
+beginning the shutdown sequence the `Hell.ShutdownListener` will cause
 the listening socket to shut down, which in turn will cause all of the `Acceptor`
 processes to shut down as well. At this point all that is left in the supervision
 tree are several layers of Supervisors and whatever `Handler` processes were
@@ -80,15 +89,15 @@ the shutdown timeout value. It defaults to 15000 ms.
 
 ### Logging & Telemetry
 
-As a low-level library, Thousand Island purposely does not do any inline
-logging of any kind. The [`ThousandIsland.Logger`](https://thousand-island.hexdocs.pm/ThousandIsland.Logger.html) module defines a number of
+As a low-level library, Hell purposely does not do any inline
+logging of any kind. The [`Hell.Logger`](lib/hell/logger.ex) module defines a number of
 functions to aid in tracing connections at various log levels, and such logging
 can be dynamically enabled and disabled against an already running server. This
 logging is backed by telemetry events internally.
 
-Thousand Island emits a rich set of telemetry events including spans for each
+Hell emits a rich set of telemetry events including spans for each
 server, acceptor process, and individual client connection. These telemetry
-events are documented in the [`ThousandIsland.Telemetry`](https://thousand-island.hexdocs.pm/ThousandIsland.Telemetry.html) module.
+events are documented in the [`Hell.Telemetry`](lib/hell/telemetry.ex) module.
 
 ## Implementation Notes
 
@@ -131,36 +140,49 @@ graph TD;
   Server-->ShutdownListener;
 ```
 
-Thousand Island does not use named processes or other 'global' state internally
+Hell does not use named processes or other 'global' state internally
 (other than telemetry event names). It is completely supported for a single node
 to host any number of `Server` processes each listening on a different port.
 
 ## Contributing
 
-Contributions to Thousand Island are very much welcome! Before undertaking any substantial work, please
+Contributions to Hell are very much welcome! Before undertaking any substantial work, please
 open an issue on the project to discuss ideas and planned approaches so we can ensure we keep
 progress moving in the same direction.
 
 All contributors must agree and adhere to the project's [Code of
-Conduct](https://github.com/mtrudel/thousand_island/blob/main/CODE_OF_CONDUCT.md).
+Conduct](https://github.com/gsmlg-dev/hell/blob/main/CODE_OF_CONDUCT.md).
 
-Security disclosures should be handled per Thousand Island's published [security policy](https://github.com/mtrudel/thousand_island/blob/main/SECURITY.md).
+Security disclosures should be handled per Hell's published [security policy](https://github.com/gsmlg-dev/hell/blob/main/SECURITY.md).
 
 ## Installation
 
-Thousand Island is [available in Hex](https://hex.pm/packages/thousand_island). The package
-can be installed by adding `thousand_island` to your list of dependencies in `mix.exs`:
+The intended OTP application and Hex package name is `hell`. Hell has not been
+published as part of this migration; the planned first release is `0.1.0`.
+Package-name availability and the remaining setup must be confirmed before
+publishing. See [RELEASE.md](RELEASE.md)
+for the release prerequisites.
+
+Use a local checkout while reviewing the fork:
 
 ```elixir
 def deps do
   [
-    {:thousand_island, "~> 1.0"}
+    {:hell, path: "../hell"}
   ]
 end
 ```
 
-Documentation can be found at [https://thousand-island.hexdocs.pm](https://thousand-island.hexdocs.pm).
+Once the fork is available at `gsmlg-dev/hell`, a Git dependency can use
+`{:hell, github: "gsmlg-dev/hell", ref: "<reviewed commit SHA>"}`. Replace the ref
+with the actual reviewed fork commit; upstream release tags are not Hell releases.
+
+Build API documentation locally with `mix docs` and open `doc/index.html`.
+[Source documentation](lib/hell.ex) and the [consumer migration guide](MIGRATION.md)
+are available in this checkout.
 
 ## License
 
-MIT
+MIT. The original [license](LICENSE) and copyright notice for Mat Trudel are
+preserved. Hell is derived from Thousand Island; historical upstream releases
+and contributor credits remain in [CHANGELOG.md](CHANGELOG.md).

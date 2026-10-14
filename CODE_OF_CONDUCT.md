@@ -58,10 +58,12 @@ representative at an online or offline event.
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-mat@geeky.net.
-All complaints will be reviewed and investigated promptly and fairly.
+Hell maintainers must establish and document a private conduct-reporting
+contact before the first release. No private contact for this fork has yet been
+verified; the upstream maintainer's email is not a Hell reporting address.
+Once that channel is established, instances of abusive, harassing, or otherwise
+unacceptable behavior may be reported to the community leaders responsible for
+enforcement. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the
 reporter of any incident.

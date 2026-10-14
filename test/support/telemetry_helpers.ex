@@ -2,26 +2,26 @@ defmodule TelemetryHelpers do
   @moduledoc false
 
   @events [
-    [:thousand_island, :listener, :start],
-    [:thousand_island, :listener, :stop],
-    [:thousand_island, :acceptor, :start],
-    [:thousand_island, :acceptor, :stop],
-    [:thousand_island, :acceptor, :spawn_error],
-    [:thousand_island, :acceptor, :econnaborted],
-    [:thousand_island, :acceptor, :accept_error],
-    [:thousand_island, :acceptor, :emfile],
-    [:thousand_island, :connection, :start],
-    [:thousand_island, :connection, :stop],
-    [:thousand_island, :connection, :exception],
-    [:thousand_island, :connection, :ready],
-    [:thousand_island, :connection, :async_recv],
-    [:thousand_island, :connection, :recv],
-    [:thousand_island, :connection, :recv_error],
-    [:thousand_island, :connection, :send],
-    [:thousand_island, :connection, :send_error],
-    [:thousand_island, :connection, :sendfile],
-    [:thousand_island, :connection, :sendfile_error],
-    [:thousand_island, :connection, :socket_shutdown]
+    [:hell, :listener, :start],
+    [:hell, :listener, :stop],
+    [:hell, :acceptor, :start],
+    [:hell, :acceptor, :stop],
+    [:hell, :acceptor, :spawn_error],
+    [:hell, :acceptor, :econnaborted],
+    [:hell, :acceptor, :accept_error],
+    [:hell, :acceptor, :emfile],
+    [:hell, :connection, :start],
+    [:hell, :connection, :stop],
+    [:hell, :connection, :exception],
+    [:hell, :connection, :ready],
+    [:hell, :connection, :async_recv],
+    [:hell, :connection, :recv],
+    [:hell, :connection, :recv_error],
+    [:hell, :connection, :send],
+    [:hell, :connection, :send_error],
+    [:hell, :connection, :sendfile],
+    [:hell, :connection, :sendfile_error],
+    [:hell, :connection, :socket_shutdown]
   ]
 
   def attach_all_events(handler) do

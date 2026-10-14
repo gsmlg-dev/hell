@@ -1,26 +1,34 @@
-defmodule ThousandIsland.MixProject do
+defmodule Hell.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :thousand_island,
-      version: "1.5.0",
-      elixir: "~> 1.13",
+      app: :hell,
+      version: "0.1.0",
+      elixir: ">= 1.18.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       dialyzer: dialyzer(),
-      name: "Thousand Island",
+      name: "Hell",
       description: "A simple & modern pure Elixir socket server",
-      source_url: "https://github.com/mtrudel/thousand_island",
+      source_url: "https://github.com/gsmlg-dev/hell",
       package: [
-        maintainers: ["Mat Trudel"],
+        name: "hell",
         licenses: ["MIT"],
         links: %{
-          "GitHub" => "https://github.com/mtrudel/thousand_island",
-          "Changelog" => "https://thousand-island.hexdocs.pm/changelog.html"
+          "GitHub" => "https://github.com/gsmlg-dev/hell",
+          "Changelog" => "https://github.com/gsmlg-dev/hell/blob/main/CHANGELOG.md"
         },
-        files: ["lib", "mix.exs", "README*", "LICENSE*", "CHANGELOG*"]
+        files: [
+          "lib",
+          "mix.exs",
+          "README*",
+          "LICENSE*",
+          "CHANGELOG*",
+          "MIGRATION.md",
+          "RELEASE.md"
+        ]
       ],
       docs: docs()
     ]
@@ -62,17 +70,16 @@ defmodule ThousandIsland.MixProject do
 
   defp docs do
     [
-      main: "ThousandIsland",
-      logo: "assets/ex_doc_logo.png",
-      extras: ["CHANGELOG.md"],
+      main: "Hell",
+      extras: ["MIGRATION.md", "CHANGELOG.md"],
       groups_for_extras: [
         Changelog: ~r/CHANGELOG\.md/
       ],
       groups_for_modules: [
         Transport: [
-          ThousandIsland.Transport,
-          ThousandIsland.Transports.TCP,
-          ThousandIsland.Transports.SSL
+          Hell.Transport,
+          Hell.Transports.TCP,
+          Hell.Transports.SSL
         ]
       ]
     ]

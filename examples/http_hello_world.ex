@@ -5,11 +5,11 @@ defmodule HTTPHelloWorld do
   remotely strictly HTTP compliant.
   """
 
-  use ThousandIsland.Handler
+  use Hell.Handler
 
-  @impl ThousandIsland.Handler
+  @impl Hell.Handler
   def handle_data(_data, socket, state) do
-    ThousandIsland.Socket.send(socket, "HTTP/1.0 200 OK\r\n\r\nHello, World")
+    Hell.Socket.send(socket, "HTTP/1.0 200 OK\r\n\r\nHello, World")
     {:close, state}
   end
 end

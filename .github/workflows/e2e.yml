@@ -1,0 +1,39 @@
+name: Hell release artifact e2e
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        required: true
+        description: Published Hell GitHub release version to test
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  artifact:
+    if: github.repository == 'gsmlg-dev/hell' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          elixir-version: '1.19.x'
+          otp-version: '28.x'
+      - name: Validate version
+        run: '[[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]'
+      - name: Download the Hell release package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/hell-release"
+          gh release download "v$RELEASE_VERSION" --repo gsmlg-dev/hell \
+            --pattern "hell-$RELEASE_VERSION.tar" --dir "$RUNNER_TEMP/hell-release"
+      - run: mix deps.get
+      - name: Test isolated TCP, TLS and graceful shutdown
+        run: bash scripts/artifact_smoke.sh "$RUNNER_TEMP/hell-release/hell-$RELEASE_VERSION.tar" "$RELEASE_VERSION"

@@ -5,12 +5,12 @@ defmodule Daytime do
   https://en.wikipedia.org/wiki/Daytime_Protocol
   """
 
-  use ThousandIsland.Handler
+  use Hell.Handler
 
-  @impl ThousandIsland.Handler
+  @impl Hell.Handler
   def handle_connection(socket, state) do
     time = DateTime.utc_now() |> to_string()
-    ThousandIsland.Socket.send(socket, time)
+    Hell.Socket.send(socket, time)
     {:close, state}
   end
 end
