@@ -1,6 +1,6 @@
 # Changelog
 
-## Hell 0.1.0 (unreleased)
+## Hell 0.1.0 (14 Oct 2026)
 
 Hell is derived from [Thousand Island](https://github.com/mtrudel/thousand_island)
 at commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0`. The project, Elixir
@@ -8,9 +8,10 @@ namespace, OTP application and intended Hex package have been renamed to Hell,
 `Hell` and `hell`. See [MIGRATION.md](MIGRATION.md) for consumer changes.
 Runtime behavior and dependency versions are unchanged.
 
-The upstream baseline version is `1.5.0`; the first planned Hell version is
-`0.1.0` and remains unpublished. Hell now requires Elixir `>= 1.18.0` instead of
-the upstream `~> 1.13` requirement.
+The upstream baseline version is `1.5.0`; `0.1.0` is the first Hell release
+version. Hell requires Elixir `>= 1.18.0` instead of the upstream `~> 1.13`
+requirement. Publication follows successful CI and the explicit gates in
+[RELEASE.md](RELEASE.md).
 
 ## Upstream Thousand Island history
 

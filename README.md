@@ -10,8 +10,8 @@ upstream runtime behavior. The Elixir namespace is `Hell`; the OTP application
 and intended Hex package are `hell`; the target repository is
 [`gsmlg-dev/hell`](https://github.com/gsmlg-dev/hell).
 
-The upstream baseline version is `1.5.0`; the first planned Hell release is
-`0.1.0` and remains unpublished. Hell requires Elixir `>= 1.18.0`. No historical
+The upstream baseline version is `1.5.0`; the first Hell release targets
+`0.1.0`. Hell requires Elixir `>= 1.18.0`. No historical
 Thousand Island release is being relabeled as a Hell release. See
 [MIGRATION.md](MIGRATION.md) before replacing an existing Thousand Island dependency.
 
@@ -157,13 +157,18 @@ Security disclosures should be handled per Hell's published [security policy](ht
 
 ## Installation
 
-The intended OTP application and Hex package name is `hell`. Hell has not been
-published as part of this migration; the planned first release is `0.1.0`.
-Package-name availability and the remaining setup must be confirmed before
-publishing. See [RELEASE.md](RELEASE.md)
-for the release prerequisites.
+For the `0.1.0` release, add the Hex package `hell` to your dependencies:
 
-Use a local checkout while reviewing the fork:
+```elixir
+def deps do
+  [
+    {:hell, "~> 0.1.0"}
+  ]
+end
+```
+
+Release publication requires successful CI and the explicit gates described in
+[RELEASE.md](RELEASE.md). Until publication succeeds, use a local checkout:
 
 ```elixir
 def deps do
@@ -173,12 +178,15 @@ def deps do
 end
 ```
 
-Once the fork is available at `gsmlg-dev/hell`, a Git dependency can use
+A Git dependency can use
 `{:hell, github: "gsmlg-dev/hell", ref: "<reviewed commit SHA>"}`. Replace the ref
-with the actual reviewed fork commit; upstream release tags are not Hell releases.
+with a reviewed fork commit, or use `tag: "v0.1.0"` after the Hell release tag is
+created. Upstream release tags are not Hell releases.
 
-Build API documentation locally with `mix docs` and open `doc/index.html`.
-[Source documentation](lib/hell.ex) and the [consumer migration guide](MIGRATION.md)
+The release documentation destination is
+[HexDocs for Hell 0.1.0](https://hexdocs.pm/hell/0.1.0/), available after successful
+documentation publication. Build documentation locally with `mix docs` and open
+`doc/index.html`. [Source documentation](lib/hell.ex) and the [consumer migration guide](MIGRATION.md)
 are available in this checkout.
 
 ## License

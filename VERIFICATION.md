@@ -1,5 +1,11 @@
 # Hell identity migration verification
 
+This document records historical local migration checkpoints from 2026-10-14.
+Statements about disabled publishing, unrun remote checks and archived package
+contents apply to those checkpoints, not subsequent delivery or publication.
+For later remote evidence, consult [GitHub Actions](https://github.com/gsmlg-dev/hell/actions)
+and [Hell releases](https://github.com/gsmlg-dev/hell/releases).
+
 Verified locally on 2026-10-14 in `codex/rename-hell`. The starting checkout was
 clean at upstream commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0`.
 At this verification checkpoint, HEAD and existing history/tags were unchanged;

@@ -2,8 +2,8 @@
 
 This fork is based on upstream commit
 `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0` (upstream version `1.5.0`). The first
-planned Hell release is `0.1.0` and remains unpublished. Historical Thousand
-Island releases remain upstream releases.
+Hell release targets `0.1.0`. Historical Thousand Island releases remain upstream
+releases.
 
 The migration changes project identities without changing socket behavior,
 transport options, default values, lifecycle callbacks, timeout handling,
@@ -15,9 +15,10 @@ Hell requires Elixir `>= 1.18.0`, replacing the upstream `~> 1.13` requirement.
 Upgrade older consuming toolchains before migrating; dependency versions remain
 unchanged.
 
-Replace the `:thousand_island` dependency with `:hell`. Until a Hell package is
-available, use a local path dependency as shown in [README.md](https://github.com/gsmlg-dev/hell/blob/main/README.md), or a
-reviewed commit from `gsmlg-dev/hell` once the fork is available remotely. Do not
+Replace the `:thousand_island` dependency with `{:hell, "~> 0.1.0"}` for the
+first Hell release. Until Hex publication succeeds, use a local path dependency
+or a reviewed commit from `gsmlg-dev/hell` as shown in [README.md](README.md).
+The `v0.1.0` tag is an alternative after the Hell release tag is created. Do not
 substitute an unrelated package or publish to `thousand_island`.
 
 Replace `ThousandIsland` and `ThousandIsland.*` with `Hell` and `Hell.*` throughout
@@ -101,10 +102,12 @@ complete custom-handler contract. Error atoms and shutdown reasons are unchanged
 
 Source paths are `lib/hell.ex`, `lib/hell/**` and `test/hell/**`. Update links,
 configuration, build tooling, package references and dashboards to the fork.
-Build local documentation with `mix docs`; no Hell HexDocs deployment is implied.
+The release documentation destination is [Hell 0.1.0 on
+HexDocs](https://hexdocs.pm/hell/0.1.0/), available after successful publication.
+Build local documentation with `mix docs`.
 [CHANGELOG.md](CHANGELOG.md) deliberately retains historical upstream module,
 telemetry and release names. The original MIT [LICENSE](https://github.com/gsmlg-dev/hell/blob/main/LICENSE) is unchanged.
 
-Publication remains disabled pending the prerequisites and explicit gates in
-[RELEASE.md](https://github.com/gsmlg-dev/hell/blob/main/RELEASE.md). This migration does not publish a package, create a tag,
-release, credential or remote change.
+The first release requires successful CI and explicit publication through the
+gated workflow described in [RELEASE.md](RELEASE.md). These migration instructions
+do not imply that publication or remote validation has completed.
