@@ -18,6 +18,7 @@ jobs:
         with:
           persist-credentials: false
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        id: beam
         with:
           elixir-version: '1.19.x'
           otp-version: '28.x'
@@ -26,7 +27,7 @@ jobs:
           path: |
             deps
             _build
-          key: hell-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-28.x-1.19.x-${{ hashFiles('mix.lock') }}
+          key: hell-mix-v2-${{ github.job }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.exs', 'mix.lock') }}
       - run: mix deps.get
       - run: mix deps.compile
       - run: mix compile --warnings-as-errors
@@ -36,7 +37,7 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: priv/plts
-          key: hell-plt-${{ runner.os }}-${{ runner.arch }}-28.x-1.19.x-${{ hashFiles('mix.lock') }}
+          key: hell-plt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.exs', 'mix.lock') }}
       - run: |
           mkdir -p priv/plts
           mix dialyzer --plt

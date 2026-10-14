@@ -1,5 +1,18 @@
 # Changelog
 
+## Hell 0.1.1
+
+- Add copyright (c) 2026 GSMLG Limited for Hell fork contributions while retaining
+  Mat Trudel's original copyright notice and every MIT permission and warranty term.
+- Publish updates to the existing `hell` package through the manual release
+  workflow, validating repository/package identity and unpublished release versions.
+- Refresh CI cache identity for the resolved toolchain to prevent reuse of
+  incompatible Dialyzer PLTs.
+
+Runtime behavior, dependency versions and the Elixir `>= 1.18.0` requirement are
+unchanged. Publication requires workflow validation and the explicit gates
+described in [RELEASE.md](RELEASE.md).
+
 ## Hell 0.1.0 (14 Oct 2026)
 
 Hell is derived from [Thousand Island](https://github.com/mtrudel/thousand_island)
@@ -10,8 +23,8 @@ Runtime behavior and dependency versions are unchanged.
 
 The upstream baseline version is `1.5.0`; `0.1.0` is the first Hell release
 version. Hell requires Elixir `>= 1.18.0` instead of the upstream `~> 1.13`
-requirement. Publication follows successful CI and the explicit gates in
-[RELEASE.md](RELEASE.md).
+requirement. The fork maintainer published this first Hell package locally to
+Hex; its documentation is available at https://hexdocs.pm/hell/0.1.0/.
 
 ## Upstream Thousand Island history
 

@@ -7,11 +7,12 @@ Hell is a fork of [Thousand Island](https://github.com/mtrudel/thousand_island),
 originally developed by Mat Trudel and contributors. This identity migration is
 based on upstream commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0` and preserves
 upstream runtime behavior. The Elixir namespace is `Hell`; the OTP application
-and intended Hex package are `hell`; the target repository is
+and Hex package are `hell`; the repository is
 [`gsmlg-dev/hell`](https://github.com/gsmlg-dev/hell).
 
-The upstream baseline version is `1.5.0`; the first Hell release targets
-`0.1.0`. Hell requires Elixir `>= 1.18.0`. No historical
+The upstream baseline version is `1.5.0`; Hell `0.1.0` was published to Hex
+by the fork maintainer. Version `0.1.1` uses a gated manual workflow for publication.
+Hell requires Elixir `>= 1.18.0`. No historical
 Thousand Island release is being relabeled as a Hell release. See
 [MIGRATION.md](MIGRATION.md) before replacing an existing Thousand Island dependency.
 
@@ -157,18 +158,19 @@ Security disclosures should be handled per Hell's published [security policy](ht
 
 ## Installation
 
-For the `0.1.0` release, add the Hex package `hell` to your dependencies:
+For the `0.1.1` release, add the Hex package `hell` to your dependencies:
 
 ```elixir
 def deps do
   [
-    {:hell, "~> 0.1.0"}
+    {:hell, "~> 0.1.1"}
   ]
 end
 ```
 
-Release publication requires successful CI and the explicit gates described in
-[RELEASE.md](RELEASE.md). Until publication succeeds, use a local checkout:
+Version `0.1.1` requires workflow validation and the explicit publication gates
+in [RELEASE.md](RELEASE.md). Until it is published, use the available `0.1.0`
+package (`{:hell, "~> 0.1.0"}`) or a local checkout:
 
 ```elixir
 def deps do
@@ -180,13 +182,14 @@ end
 
 A Git dependency can use
 `{:hell, github: "gsmlg-dev/hell", ref: "<reviewed commit SHA>"}`. Replace the ref
-with a reviewed fork commit, or use `tag: "v0.1.0"` after the Hell release tag is
-created. Upstream release tags are not Hell releases.
+with a reviewed fork commit, or use `tag: "v0.1.1"` once the canonical Hell
+release tag is created. Historical upstream releases remain documented in
+[CHANGELOG.md](CHANGELOG.md) and retain their upstream identity.
 
-The release documentation destination is
-[HexDocs for Hell 0.1.0](https://hexdocs.pm/hell/0.1.0/), available after successful
-documentation publication. Build documentation locally with `mix docs` and open
-`doc/index.html`. [Source documentation](lib/hell.ex) and the [consumer migration guide](MIGRATION.md)
+Published [Hell 0.1.0 documentation](https://hexdocs.pm/hell/0.1.0/) is available.
+The next release targets [Hell 0.1.1 documentation](https://hexdocs.pm/hell/0.1.1/),
+available after successful workflow publication. Build documentation locally
+with `mix docs` and open `doc/index.html`. [Source documentation](lib/hell.ex) and the [consumer migration guide](MIGRATION.md)
 are available in this checkout.
 
 ## License

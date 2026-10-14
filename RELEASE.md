@@ -1,19 +1,24 @@
 # Hell CI and release preparation
 
-Hell targets `gsmlg-dev/hell`, OTP application `:hell` and the intended Hex package
-`hell`. It is derived from Thousand Island; upstream history and historical tags
-remain Thousand Island history. The upstream baseline was version `1.5.0`;
-`mix.exs` now declares the first planned Hell version, `0.1.0`. This version
-remains unpublished and does **not** announce a Hell release.
+Hell targets `gsmlg-dev/hell`, OTP application `:hell` and Hex package `hell`.
+It is derived from Thousand Island at upstream version `1.5.0`. Hell `0.1.0`
+was published locally by the fork maintainer and its Hex package and HexDocs
+are available. `mix.exs` declares version `0.1.1`; publication uses the gated
+manual workflow. Fork release tags use the Hell identity beginning
+with `v0.1.1`; upstream commit history and historical release records remain
+preserved, without treating upstream releases as Hell releases.
 
 ## Validation and supported toolchains
 
 `ci.yml` checks compilation with warnings as errors, unused locked dependencies,
 formatting, strict Credo, Dialyzer and documentation. `test.yml` runs the full
 existing ExUnit suite separately. Machete is the suite's assertion dependency,
-not a separate static-check command. All caches include Hell identity, toolchain
-and architecture; workflows request only `contents: read` and cancel redundant
-runs. Automatic retry and privileged cache-deletion workflows were removed.
+not a separate static-check command. Dependency/build caches use the
+`hell-mix-v2` identity and PLT caches use `hell-plt-v2`; keys include resolved
+Elixir/OTP versions, runner OS/architecture and both `mix.exs` and `mix.lock`.
+The new cache schema avoids incompatible earlier PLTs without deleting caches or
+falling back to broader keys. Workflows request only `contents: read` and cancel
+redundant runs. Automatic retry and privileged cache-deletion workflows were removed.
 
 The declared Elixir requirement is now `>= 1.18.0`; dependencies are unchanged.
 The upstream delegated CI at
@@ -65,7 +70,8 @@ Linux retains `mix test`. All six toolchain pairs, tests and assertions remain;
 only the CI runner and ExUnit module concurrency change. There are no test
 filters, failure retries, runtime changes or altered timeouts. The final remote
 matrix must validate ARM64 with this concurrency limit; successful macOS CI is
-not yet established.
+not yet established. Handler timing failures at 619, 788 and 931 remain
+unresolved in subsequent remote CI; the `0.1.1` pipeline still needs validation.
 
 Actions are pinned to inspected stable release commits: checkout v7.0.1,
 cache v6.1.0, upload-artifact v7.0.2 and setup-beam v1.24.1.
@@ -85,7 +91,7 @@ mix dialyzer
 mix test
 mix docs
 mix hex.build
-bash scripts/artifact_smoke.sh hell-0.1.0.tar 0.1.0
+bash scripts/artifact_smoke.sh hell-0.1.1.tar 0.1.1
 ```
 
 The smoke script verifies the tarball's Hex package name, application and version,
@@ -112,8 +118,8 @@ compile, check formatting, run the existing suite, build docs and the Hex packag
 smoke-test the tarball and upload candidate artifacts. Neither mode changes
 versions, creates commits/tags/GitHub releases or pushes Git refs.
 
-For the first Hell publication, dispatch this workflow **from `main`** in
-`gsmlg-dev/hell` with `version=0.1.0`, `git_ref=v0.1.0` and `publish=true` after the
+For Hell `0.1.1`, dispatch this workflow **from `main`** in `gsmlg-dev/hell`
+with `version=0.1.1`, `git_ref=v0.1.1` and `publish=true` after the
 trusted tag is created. Selecting `publish=true` is the explicit publication
 opt-in; `git_ref=main` cannot publish. The tag must point at the checked-out commit,
 which must be an ancestor of `origin/main`. Repository, workflow event/ref,
@@ -129,20 +135,26 @@ GitHub environments or repository security settings are configured by the
 workflow. A maintainer may add protected release-environment controls separately;
 they are not an additional prerequisite imposed by this release implementation.
 
-Immediately before first publication, a read-only HTTPS lookup of
-`https://hex.pm/api/packages/hell` must return HTTP 404. The earlier lookup returned
-404 on 2026-10-14 at 13:15 UTC, without reserving the name. Occupied names, network
-failures or unverified responses abort publication; no alternative package name
-is chosen. This first-package flow also rejects an occupied name on reruns; any
-later release or documentation-only recovery needs a deliberate ownership-aware
-flow rather than overwriting an existing package silently.
+Immediately before publication, the read-only lookup of
+`https://hex.pm/api/packages/hell` must either return HTTP 404 for first-package
+creation or return valid JSON naming `hell` with `meta.links.GitHub` exactly
+`https://github.com/gsmlg-dev/hell`. The package now exists with version `0.1.0`;
+its earlier 404 on 2026-10-14 at 13:15 UTC was only a historical availability check.
+The requested version must be unpublished: for this release,
+`https://hex.pm/api/packages/hell/releases/0.1.1` must return HTTP 404.
+Mismatched package metadata, occupied release versions, network errors or
+unverified responses abort publication. The publishing credential must have
+permission for the existing package; metadata validation is not credential
+authorization. No alternate package name or overwrite is allowed. If a partial
+publish requires documentation recovery, use a separately reviewed flow instead
+of republishing or replacing the package.
 
 After these gates pass, `mix hex.publish --yes` publishes **both the package and
 its documentation** using the installed Hex CLI. It has no replacement or private
 organization flag, and can never target `thousand_island`. Successful preparation
 alone is not publication; verify the publish-step result and public Hex/HexDocs
-availability before claiming delivery. Historical upstream tags remain Thousand
-Island releases.
+availability before claiming delivery. Historical upstream release records
+remain Thousand Island history, independent of the fork's current tag refs.
 
 The actual Hell GitHub release should attach the verified `hell-VERSION.tar`
 asset so `e2e.yml` can consume it. GitHub release/tag creation remains a separate
