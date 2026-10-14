@@ -15,6 +15,21 @@ unless Regex.match?(~r/\A[0-9]+\.[0-9]+\.[0-9]+\z/, version) and config[:version
 end
 
 tag = "v#{version}"
+publish = System.get_env("RELEASE_PUBLISH") == "true"
+
+if publish do
+  unless System.get_env("GITHUB_REPOSITORY") == "gsmlg-dev/hell" and
+           System.get_env("GITHUB_EVENT_NAME") == "workflow_dispatch" and
+           System.get_env("GITHUB_REF") == "refs/heads/main" and ref == tag do
+    raise "publication requires a manual main workflow in gsmlg-dev/hell and git_ref #{tag}"
+  end
+
+  {_output, status} = System.cmd("git", ["merge-base", "--is-ancestor", "HEAD", "origin/main"])
+
+  unless status == 0 do
+    raise "publication requires the checked-out tag commit to belong to origin/main"
+  end
+end
 
 case ref do
   "main" ->
@@ -33,4 +48,14 @@ case ref do
     raise "git_ref must be main or #{tag}"
 end
 
-IO.puts("Publication is disabled; this check authorizes preparation only")
+if artifact = System.get_env("RELEASE_ARTIFACT") do
+  Mix.ensure_application!(:hex)
+  %{metadata: metadata} = Hex.Tar.unpack!(artifact, :memory)
+
+  unless metadata["app"] == "hell" and metadata["name"] == "hell" and
+           metadata["version"] == version do
+    raise "release artifact application, package and version must match hell #{version}"
+  end
+end
+
+IO.puts("Validated release metadata; publication remains subject to the workflow's explicit opt-in")

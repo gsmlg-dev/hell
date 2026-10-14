@@ -81,40 +81,47 @@ temporary consumer on exit. These artifact tests supplement the existing suite.
 A future Hell GitHub release must contain that asset before this remote workflow
 can succeed. Historical upstream releases are not candidates for this workflow.
 
-## Preparation and publication prerequisites
+## Manual preparation and publication
 
-`release.yml` is a **build-only**, manual workflow. It neither changes versions nor
-creates commits, tags or GitHub releases, and contains no publishing command or
-publishing secret. It runs only when dispatched from `main` in `gsmlg-dev/hell`.
-The input version must match `mix.exs`; `git_ref` must be `main` or the exact
-`vVERSION` tag. The checker verifies repository metadata and the `hell` app/package
-identities. Tag preparation additionally requires that tag to point at the
-checked-out commit. Preparation from `main` works before any Hell tag exists and
-reports the expected future tag. The workflow validates, builds documentation and
-the Hex tarball, smoke-tests that tarball, and uploads reviewable candidate
-artifacts only.
+`release.yml` is manual. Its `publish` boolean defaults to `false`; preparation
+from `main` remains available without publishing or a release tag. Both modes
+validate the repository, package/application identities and exact version, then
+compile, check formatting, run the existing suite, build docs and the Hex package,
+smoke-test the tarball and upload candidate artifacts. Neither mode changes
+versions, creates commits/tags/GitHub releases or pushes Git refs.
 
-Before enabling any future publication flow, a maintainer must:
+For the first Hell publication, dispatch this workflow **from `main`** in
+`gsmlg-dev/hell` with `version=0.1.0`, `git_ref=v0.1.0` and `publish=true` after the
+trusted tag is created. Selecting `publish=true` is the explicit publication
+opt-in; `git_ref=main` cannot publish. The tag must point at the checked-out commit,
+which must be an ancestor of `origin/main`. Repository, workflow event/ref,
+source URL, app/package name, version/tag and built tarball metadata are validated
+again immediately before publication. No pull-request or automatic tag/push
+trigger can access this publishing path.
 
-1. Review the planned `0.1.0` release and confirm its metadata and changes are
-   ready. The version decision is recorded in `mix.exs`; no release exists yet.
-2. Confirm permission to publish Hex package `hell`. A read-only lookup of
-   `https://hex.pm/api/packages/hell` returned HTTP 404 (`Page not found`) on
-   2026-10-14 at 13:15 UTC. This records apparent availability at that time;
-   it does not reserve the name. Recheck it before setup; if occupied or
-   unverified, keep publishing disabled and do not choose another name silently.
-3. Review a trusted Hell commit and create its corresponding `vVERSION` tag in
-   `gsmlg-dev/hell`. Upstream tags do not become Hell releases by inheritance.
-4. Configure a protected release environment and a Hex API credential authorized
-   for `hell` (normally `HEX_API_KEY`) only after explicit release authorization.
-   No credentials or repository protection settings are configured by this task.
-5. Require explicit publication approval and validate `github.repository`, the
-   trusted tag/ref, the tag's commit, `mix.exs` version, artifact version, OTP app
-   and Hex package name together immediately before publishing. A future publisher
-   must reject pull-request code and mismatches and must never publish
-   `thousand_island`. The current checker authorizes preparation only.
-6. Attach the verified `hell-VERSION.tar` to the actual Hell GitHub release so the
-   manual release-artifact e2e workflow can consume it.
+The final publishing step uses only the existing organization-provided
+`HEX_API_KEY` secret available to this repository. That credential must authorize
+public Hex package creation/publication and documentation upload. It is exposed
+only to that gated step, never printed, and no keys, authentication profiles,
+GitHub environments or repository security settings are configured by the
+workflow. A maintainer may add protected release-environment controls separately;
+they are not an additional prerequisite imposed by this release implementation.
 
-No publishing trigger is enabled by this migration. A successful preparation run
-is not a publication or a GitHub release.
+Immediately before first publication, a read-only HTTPS lookup of
+`https://hex.pm/api/packages/hell` must return HTTP 404. The earlier lookup returned
+404 on 2026-10-14 at 13:15 UTC, without reserving the name. Occupied names, network
+failures or unverified responses abort publication; no alternative package name
+is chosen. This first-package flow also rejects an occupied name on reruns; any
+later release or documentation-only recovery needs a deliberate ownership-aware
+flow rather than overwriting an existing package silently.
+
+After these gates pass, `mix hex.publish --yes` publishes **both the package and
+its documentation** using the installed Hex CLI. It has no replacement or private
+organization flag, and can never target `thousand_island`. Successful preparation
+alone is not publication; verify the publish-step result and public Hex/HexDocs
+availability before claiming delivery. Historical upstream tags remain Thousand
+Island releases.
+
+The actual Hell GitHub release should attach the verified `hell-VERSION.tar`
+asset so `e2e.yml` can consume it. GitHub release/tag creation remains a separate
+maintainer action; this workflow requests only `contents: read`.

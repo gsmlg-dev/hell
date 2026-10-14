@@ -1,4 +1,4 @@
-name: Hell release preparation (publication disabled)
+name: Hell release preparation and optional publication
 on:
   workflow_dispatch:
     inputs:
@@ -11,6 +11,11 @@ on:
         required: true
         default: main
         description: main or the trusted vVERSION tag to prepare
+      publish:
+        type: boolean
+        required: false
+        default: false
+        description: Publish package and docs to Hex (requires git_ref vVERSION)
 permissions:
   contents: read
 concurrency:
@@ -18,16 +23,20 @@ concurrency:
   cancel-in-progress: true
 jobs:
   prepare:
-    if: github.repository == 'gsmlg-dev/hell' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && github.repository == 'gsmlg-dev/hell' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     env:
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_REF: ${{ inputs.git_ref }}
+      RELEASE_PUBLISH: ${{ inputs.publish }}
     steps:
       - name: Validate inputs before checkout
         run: |
           [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ "$RELEASE_REF" == main || "$RELEASE_REF" == "v$RELEASE_VERSION" ]]
+          if [[ "$RELEASE_PUBLISH" == true ]]; then
+            [[ "$RELEASE_REF" == "v$RELEASE_VERSION" ]]
+          fi
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.git_ref }}
@@ -57,3 +66,19 @@ jobs:
             hell-${{ inputs.version }}.tar
             doc/
           if-no-files-found: error
+      - name: Publish Hell package and documentation
+        if: inputs.publish && inputs.git_ref == format('v{0}', inputs.version)
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+          RELEASE_ARTIFACT: hell-${{ inputs.version }}.tar
+        run: |
+          test -n "$HEX_API_KEY"
+          mix run --no-compile --no-deps-check --no-start scripts/check_release.exs
+          status=$(curl --silent --show-error --location --max-time 30 \
+            --output "$RUNNER_TEMP/hell-package-name.json" --write-out '%{http_code}' \
+            https://hex.pm/api/packages/hell)
+          if [[ "$status" != 404 ]]; then
+            echo "Hex package hell is occupied or its availability could not be verified (HTTP $status)" >&2
+            exit 1
+          fi
+          mix hex.publish --yes
