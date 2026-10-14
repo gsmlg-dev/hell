@@ -52,7 +52,17 @@ lines 619, 657, 788 and 931, while all six Linux jobs passed. Tests at 788 and
 bodies and relevant runtime code are unchanged apart from the identity migration.
 The Intel runner changes the CI environment while retaining all six toolchain
 pairs, the full test suite and every assertion. It does not establish ARM64
-correctness or guarantee that Intel CI will pass.
+correctness.
+
+The initial Intel attempts also failed: suites took 43–66 seconds, compared
+with roughly 13 seconds on Linux, and failures included 100ms socket read/connect
+checks and log capture in addition to the previously observed timer assertions.
+These newly observed failures have not been reproduced against upstream. To
+reduce contention between the suite's async test modules, macOS runs the full
+suite with `mix test --max-cases 1`; Linux retains `mix test`. This changes only
+ExUnit module concurrency, without filtering tests, retrying failures or changing
+runtime code, timeouts or assertions. The final remote matrix must validate this
+adjustment; successful macOS CI is not yet established.
 
 Actions are pinned to inspected stable release commits: checkout v7.0.1,
 cache v6.1.0, upload-artifact v7.0.2 and setup-beam v1.24.1.
