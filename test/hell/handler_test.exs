@@ -641,8 +641,19 @@ defmodule Hell.HandlerTest do
       @impl Hell.Handler
       def handle_data("ping", socket, state) do
         Logger.info("ping_received")
+        send(state, {:sync_recv_ready, self()})
 
-        case Hell.Socket.recv(socket, 0) do
+        # Let the test install its monitor before this callback can terminate.
+        receive do
+          {:start_sync_recv, ^state} -> :ok
+        after
+          1000 -> raise "synchronous recv was not started"
+        end
+
+        result = Hell.Socket.recv(socket, 0)
+        send(state, {:sync_recv_result, self(), result})
+
+        case result do
           {:error, reason} -> {:error, reason, state}
           {:ok, _binary} -> {:continue, state}
         end
@@ -657,14 +668,24 @@ defmodule Hell.HandlerTest do
     test "it should timeout after the global read_timeout on synchronous recv call" do
       # Start handler with a global read_timeout of 50ms for all connections
       read_timeout = 50
-      {:ok, port} = start_handler(SyncReadTimeout, read_timeout: read_timeout)
+
+      {:ok, port} =
+        start_handler(SyncReadTimeout, read_timeout: read_timeout, handler_options: self())
 
       messages =
         capture_log(fn ->
           {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
           :gen_tcp.send(client, "ping")
+          assert_receive {:sync_recv_ready, handler}, 1000
+          monitor = Process.monitor(handler)
+          send(handler, {:start_sync_recv, self()})
+
+          # Exclude connection startup while keeping the original client deadline
+          # around the synchronous receive and subsequent socket closure.
           assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
-          Process.sleep(100)
+
+          assert_receive {:sync_recv_result, ^handler, {:error, :timeout}}, 1000
+          assert_receive {:DOWN, ^monitor, :process, ^handler, {:shutdown, :read_timeout}}, 1000
         end)
 
       # Ensure the initial message was received
@@ -772,16 +793,25 @@ defmodule Hell.HandlerTest do
 
       require Logger
 
+      # Enum.join/1 below renders each received A as "65", so 250 bytes in
+      # 500ms is the midpoint of the existing 400..600 character assertion.
+      @send_interval 2
+
       @impl Hell.Handler
-      def handle_connection(_socket, state) do
-        Process.send_after(self(), :send_bytes, 1)
-        {:continue, state}
+      def handle_connection(_socket, _state) do
+        started_at = System.monotonic_time(:millisecond)
+        Process.send_after(self(), :send_bytes, started_at + @send_interval, abs: true)
+        {:continue, {started_at, 0}}
       end
 
-      def handle_info(:send_bytes, {socket, state}) do
-        Hell.Socket.send(socket, "A")
-        Process.send_after(self(), :send_bytes, 1)
-        {:noreply, {socket, state}}
+      def handle_info(:send_bytes, {socket, {started_at, sent}}) do
+        # Catch up to elapsed time instead of accumulating scheduler delays on
+        # each send. Keep sending without a cap so a late timeout still fails.
+        due = div(System.monotonic_time(:millisecond) - started_at, @send_interval)
+        Hell.Socket.send(socket, :binary.copy("A", due - sent))
+        next_send_at = started_at + (due + 1) * @send_interval
+        Process.send_after(self(), :send_bytes, next_send_at, abs: true)
+        {:noreply, {socket, {started_at, due}}}
       end
     end
 

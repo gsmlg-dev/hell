@@ -53,8 +53,9 @@ Runner/toolchain compatibility was inspected on 2026-10-14:
 The initial `macos-26` ARM64 matrix failed timing-sensitive handler tests at
 lines 619, 657, 788 and 931, while all six Linux jobs passed. Tests at 788 and
 931 were also reproduced as failures against the upstream baseline locally;
-619 and 657 are newly observed and remain unresolved on ARM64. Their test
-bodies and relevant runtime code are unchanged apart from the identity migration.
+619 and 657 were newly observed and were not reproduced against upstream.
+During that investigation, their test bodies and relevant runtime code were
+unchanged apart from the identity migration.
 
 The Intel runner attempt also failed: suites took 43–66 seconds, compared with
 13.7–17.3 seconds on the initial ARM64 run and roughly 13 seconds on Linux.
@@ -67,11 +68,24 @@ on Intel reduced the two inspected OTP 26 suites to 29.5 and 33 seconds, but
 The matrix returns to ARM64 for its observed lower suite duration, retaining
 `mix test --max-cases 1` on macOS to reduce contention between async test modules.
 Linux retains `mix test`. All six toolchain pairs, tests and assertions remain;
-only the CI runner and ExUnit module concurrency change. There are no test
-filters, failure retries, runtime changes or altered timeouts. The final remote
-matrix must validate ARM64 with this concurrency limit; successful macOS CI is
-not yet established. Handler timing failures at 619, 788 and 931 remain
-unresolved in subsequent remote CI; the `0.1.1` pipeline still needs validation.
+subsequent pre-repair runs still included handler timing failures at 619, 657,
+788 and 931.
+
+The handler fixture repair synchronizes the synchronous receive test before
+starting its receive and immediately checks socket closure within the original
+100ms client deadline after signaling the handler to start. It then verifies the
+actual receive-timeout result, handler termination and captured logs. Its original
+50ms server timeout remains. The recurring-send
+fixture uses an absolute elapsed-time schedule with catch-up instead of adding
+scheduler delay after every send. It sends an `A` every 2ms because the existing
+`Enum.join/1` assertion renders each received byte as `"65"`; the 500ms server
+timeout, 1000ms client receive timeout and 400..600 character bounds remain.
+These changes affect test fixtures only. There are no test filters, failure
+retries, runtime changes or altered socket timeouts. Historical failures remain
+part of the investigation record; the fixture repair does not establish that
+every observed failure is resolved. Before publication, the full remote matrix
+must pass on the final release commit, including ARM64 with its concurrency
+limit; retain actual run results with the release evidence.
 
 Actions are pinned to inspected stable release commits: checkout v7.0.1,
 cache v6.1.0, upload-artifact v7.0.2 and setup-beam v1.24.1.
