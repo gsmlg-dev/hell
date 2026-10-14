@@ -578,7 +578,9 @@ defmodule Hell.HandlerTest do
 
       @impl Hell.Handler
       def handle_data("ping", _socket, state) do
+        Hell.HandlerTest.record_timing(state, :server_ping, nil)
         Logger.info("ping_received")
+        Hell.HandlerTest.record_timing(state, :server_ping_return, nil)
         {:continue, state}
       end
 
@@ -588,7 +590,8 @@ defmodule Hell.HandlerTest do
       end
 
       @impl Hell.Handler
-      def handle_timeout(_socket, _state) do
+      def handle_timeout(_socket, state) do
+        Hell.HandlerTest.record_timing(state, :server_timeout, nil)
         Logger.error("handle_timeout")
       end
 
@@ -618,19 +621,31 @@ defmodule Hell.HandlerTest do
     @tag capture_log: true
     test "it should not close the connection if the client keeps sending within the read_timeout, even with local messages arriving" do
       read_timeout = 100
-      {:ok, port} = start_handler(ReadTimeout, read_timeout: read_timeout)
+      {:ok, port} =
+        start_handler(ReadTimeout, read_timeout: read_timeout, handler_options: self())
 
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
 
-      # Send pings every 50ms (well within the 100ms timeout) for 300ms
-      for _ <- 1..6 do
-        :gen_tcp.send(client, "ping")
-        Process.sleep(50)
-      end
+      try do
+        # Send pings every 50ms (well within the 100ms timeout) for 300ms
+        for index <- 1..6 do
+          record_timing(self(), :client_ping, index)
+          result = :gen_tcp.send(client, "ping")
+          record_timing(self(), :client_ping_sent, {index, result})
+          record_timing(self(), :sleep_start, {index, 50})
+          Process.sleep(50)
+          record_timing(self(), :sleep_end, index)
+        end
 
-      # Connection should still be open
-      assert :gen_tcp.recv(client, 0, 10) == {:error, :timeout}
-      :gen_tcp.close(client)
+        # Connection should still be open
+        record_timing(self(), :client_recv_start, 10)
+        result = :gen_tcp.recv(client, 0, 10)
+        record_timing(self(), :client_recv_result, result)
+        assert result == {:error, :timeout}
+        :gen_tcp.close(client)
+      after
+        dump_timing(:continual_ping)
+      end
     end
 
     defmodule SyncReadTimeout do
@@ -650,7 +665,9 @@ defmodule Hell.HandlerTest do
           1000 -> raise "synchronous recv was not started"
         end
 
+        Hell.HandlerTest.record_timing(state, :server_recv_start, socket.read_timeout)
         result = Hell.Socket.recv(socket, 0)
+        Hell.HandlerTest.record_timing(state, :server_recv_result, result)
         send(state, {:sync_recv_result, self(), result})
 
         case result do
@@ -660,7 +677,8 @@ defmodule Hell.HandlerTest do
       end
 
       @impl Hell.Handler
-      def handle_timeout(_socket, _state) do
+      def handle_timeout(_socket, state) do
+        Hell.HandlerTest.record_timing(state, :server_timeout, nil)
         Logger.error("handle_timeout")
       end
     end
@@ -678,14 +696,22 @@ defmodule Hell.HandlerTest do
           :gen_tcp.send(client, "ping")
           assert_receive {:sync_recv_ready, handler}, 1000
           monitor = Process.monitor(handler)
-          send(handler, {:start_sync_recv, self()})
+          try do
+            record_timing(self(), :client_start_signal, nil)
+            send(handler, {:start_sync_recv, self()})
 
-          # Exclude connection startup while keeping the original client deadline
-          # around the synchronous receive and subsequent socket closure.
-          assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
+            # Save the original 100ms observation before collecting diagnostics.
+            record_timing(self(), :client_recv_start, read_timeout * 2)
+            client_result = :gen_tcp.recv(client, 0, read_timeout * 2)
+            record_timing(self(), :client_recv_result, client_result)
 
-          assert_receive {:sync_recv_result, ^handler, {:error, :timeout}}, 1000
-          assert_receive {:DOWN, ^monitor, :process, ^handler, {:shutdown, :read_timeout}}, 1000
+            assert_receive {:sync_recv_result, ^handler, {:error, :timeout}}, 1000
+            assert_receive {:DOWN, ^monitor, :process, ^handler, {:shutdown, :read_timeout}}, 1000
+            record_timing(self(), :handler_down_observed, nil)
+            assert client_result == {:error, :closed}
+          after
+            dump_timing(:sync_recv)
+          end
         end)
 
       # Ensure the initial message was received
@@ -944,12 +970,15 @@ defmodule Hell.HandlerTest do
 
       @impl Hell.Handler
       def handle_data(data, socket, state) do
+        Hell.HandlerTest.record_timing(state, :server_ping, nil)
         Hell.Socket.send(socket, data)
+        Hell.HandlerTest.record_timing(state, :server_echo_sent, nil)
         {:continue, state}
       end
 
       @impl Hell.Handler
-      def handle_timeout(_socket, _state) do
+      def handle_timeout(_socket, state) do
+        Hell.HandlerTest.record_timing(state, :server_timeout, nil)
         Logger.error("handle_timeout")
       end
     end
@@ -960,26 +989,45 @@ defmodule Hell.HandlerTest do
     #
     test "timer resets from the last client message, not the first" do
       read_timeout = 100
-      {:ok, port} = start_handler(EchoWithTimeout, read_timeout: read_timeout)
+      {:ok, port} =
+        start_handler(EchoWithTimeout, read_timeout: read_timeout, handler_options: self())
 
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
 
-      # Send several pings spread over 3x the timeout window — if the timer
-      # were not resetting, we'd be closed long before the last ping
-      for _ <- 1..4 do
-        :gen_tcp.send(client, "ping")
-        assert :gen_tcp.recv(client, 4) == {:ok, ~c"ping"}
-        Process.sleep(80)
+      try do
+        # Send several pings spread over 3x the timeout window — if the timer
+        # were not resetting, we'd be closed long before the last ping
+        for index <- 1..4 do
+          record_timing(self(), :client_ping, index)
+          send_result = :gen_tcp.send(client, "ping")
+          record_timing(self(), :client_ping_sent, {index, send_result})
+          record_timing(self(), :client_echo_recv_start, index)
+          result = :gen_tcp.recv(client, 4)
+          record_timing(self(), :client_echo_recv_result, {index, result})
+          assert result == {:ok, ~c"ping"}
+          record_timing(self(), :sleep_start, {index, 80})
+          Process.sleep(80)
+          record_timing(self(), :sleep_end, index)
+        end
+
+        # Now stop sending; the timeout should fire from the last ping
+        record_timing(self(), :capture_requested, nil)
+
+        messages =
+          capture_log(fn ->
+            record_timing(self(), :capture_started, nil)
+            record_timing(self(), :client_recv_start, read_timeout * 3)
+            result = :gen_tcp.recv(client, 0, read_timeout * 3)
+            record_timing(self(), :client_recv_result, result)
+            assert result == {:error, :closed}
+            Process.sleep(50)
+          end)
+
+        record_timing(self(), :capture_result, messages)
+        assert messages =~ "handle_timeout"
+      after
+        dump_timing(:timer_reset)
       end
-
-      # Now stop sending; the timeout should fire from the last ping
-      messages =
-        capture_log(fn ->
-          assert :gen_tcp.recv(client, 0, read_timeout * 3) == {:error, :closed}
-          Process.sleep(50)
-        end)
-
-      assert messages =~ "handle_timeout"
     end
 
     defmodule OneShotTimeoutWithLocalMessages do
@@ -1476,6 +1524,26 @@ defmodule Hell.HandlerTest do
 
       assert %RuntimeError{message: "data nope"} = metadata.reason
       refute_receive {:telemetry, [:hell, :connection, :stop], _, _}, 100
+    end
+  end
+
+  # Temporary [DEBUG-hell-timing-r3] probes: mailbox writes only during timing windows.
+  @doc false
+  def record_timing(observer, event, value) when is_pid(observer) do
+    send(observer, {:hell_timing_r3, event, System.monotonic_time(:microsecond), value})
+  end
+
+  def record_timing(_observer, _event, _value), do: :ok
+
+  defp dump_timing(scenario, events \\ []) do
+    receive do
+      {:hell_timing_r3, event, timestamp, value} ->
+        dump_timing(scenario, [{event, timestamp, value} | events])
+    after
+      0 ->
+        events
+        |> Enum.sort_by(&elem(&1, 1))
+        |> IO.inspect(label: "[DEBUG-hell-timing-r3] #{scenario}", limit: :infinity, pretty: false)
     end
   end
 
