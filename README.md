@@ -4,10 +4,12 @@
 [![Tests](https://github.com/gsmlg-dev/hell/actions/workflows/test.yml/badge.svg)](https://github.com/gsmlg-dev/hell/actions/workflows/test.yml)
 
 Hell is a fork of [Thousand Island](https://github.com/mtrudel/thousand_island),
-originally developed by Mat Trudel and contributors. This identity migration is
-based on upstream commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0` and preserves
-upstream runtime behavior. The Elixir namespace is `Hell`; the OTP application
-and Hex package are `hell`; the repository is
+originally developed by Mat Trudel and contributors. The initial identity
+migration, based on upstream commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0`,
+preserved upstream runtime behavior. Hell `0.1.1` adds a narrow shutdown fix that
+waits for acceptor cleanup before pool teardown; see [MIGRATION.md](MIGRATION.md)
+for its shutdown latency implications. The Elixir namespace is `Hell`; the OTP
+application and Hex package are `hell`; the repository is
 [`gsmlg-dev/hell`](https://github.com/gsmlg-dev/hell).
 
 The upstream baseline version is `1.5.0`; Hell `0.1.0` was published to Hex

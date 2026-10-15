@@ -324,6 +324,75 @@ defmodule Hell.ServerTest do
       Task.await(task)
     end
 
+    test "it waits for acceptor telemetry before completing shutdown" do
+      TelemetryHelpers.attach_all_events(Echo)
+      {:ok, server_pid, _} = start_handler(Echo, num_acceptors: 1)
+
+      assert_receive {:telemetry, [:hell, :acceptor, :start], _,
+                      %{telemetry_span_context: acceptor_span}},
+                     500
+
+      pool = Hell.Server.acceptor_pool_supervisor_pid(server_pid)
+      [acceptor_supervisor] = Hell.AcceptorPoolSupervisor.acceptor_supervisor_pids(pool)
+
+      {:acceptor, acceptor, _, _} =
+        List.keyfind(Supervisor.which_children(acceptor_supervisor), :acceptor, 0)
+
+      :erlang.suspend_process(acceptor)
+
+      try do
+        task = Task.async(fn -> Hell.stop(server_pid) end)
+        assert_receive {:telemetry, [:hell, :listener, :stop], _, _}, 500
+        assert Task.yield(task, 100) == nil
+
+        :erlang.resume_process(acceptor)
+        assert Task.await(task) == :ok
+
+        assert_receive {:telemetry, [:hell, :acceptor, :stop], _,
+                        %{telemetry_span_context: ^acceptor_span}},
+                       500
+
+        refute_receive {:telemetry, [:hell, :acceptor, :stop], _,
+                        %{telemetry_span_context: ^acceptor_span}},
+                       100
+      after
+        try do
+          :erlang.resume_process(acceptor)
+        catch
+          :error, :badarg -> :ok
+        end
+      end
+    end
+
+    test "it completes every acceptor span across multiple listener sockets" do
+      TelemetryHelpers.attach_all_events(Echo)
+
+      {:ok, server_pid, _} =
+        start_handler(Echo,
+          num_acceptors: 4,
+          num_listen_sockets: 2,
+          transport_options: [reuseport: true]
+        )
+
+      spans =
+        for _ <- 1..4 do
+          assert_receive {:telemetry, [:hell, :acceptor, :start], _,
+                          %{telemetry_span_context: span}},
+                         500
+
+          span
+        end
+
+      assert MapSet.size(MapSet.new(spans)) == 4
+      Hell.stop(server_pid)
+
+      for span <- spans do
+        assert_receive {:telemetry, [:hell, :acceptor, :stop], %{connections: 0},
+                        %{telemetry_span_context: ^span}},
+                       500
+      end
+    end
+
     test "it should emit telemetry events as expected" do
       TelemetryHelpers.attach_all_events(Echo)
 

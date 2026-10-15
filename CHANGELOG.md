@@ -8,13 +8,19 @@
   workflow, validating repository/package identity and unpublished release versions.
 - Refresh CI cache identity for the resolved toolchain to prevent reuse of
   incompatible Dialyzer PLTs.
-- Synchronize the synchronous receive-timeout fixture and use an elapsed-time
-  send schedule and absolute ping deadlines in handler tests on macOS; start
-  timer-reset log capture before connection and traffic.
+- Synchronize the synchronous receive-timeout fixture with a handler-entry
+  acknowledgment and use an elapsed-time send schedule and absolute ping deadlines
+  in handler tests on macOS; start timer-reset log capture before connection and
+  traffic.
+- Correct an inherited shutdown telemetry race by waiting for acceptor cleanup
+  before pool teardown, using the existing stop-event emission and retaining the
+  5000ms shutdown-listener child bound.
 
-Runtime behavior, dependency versions and the Elixir `>= 1.18.0` requirement are
-unchanged. Publication requires workflow validation and the explicit gates
-described in [RELEASE.md](RELEASE.md).
+This intentionally adds orderly shutdown waiting within that existing child
+bound and can affect shutdown latency. Dependency versions, socket options,
+connection ownership, configured connection shutdown timeouts and the Elixir
+`>= 1.18.0` requirement are unchanged. Publication requires workflow validation
+and the explicit gates described in [RELEASE.md](https://github.com/gsmlg-dev/hell/blob/main/RELEASE.md).
 
 ## Hell 0.1.0 (14 Oct 2026)
 
@@ -22,7 +28,8 @@ Hell is derived from [Thousand Island](https://github.com/mtrudel/thousand_islan
 at commit `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0`. The project, Elixir
 namespace, OTP application and intended Hex package have been renamed to Hell,
 `Hell` and `hell`. See [MIGRATION.md](MIGRATION.md) for consumer changes.
-Runtime behavior and dependency versions are unchanged.
+That initial identity migration preserved runtime behavior and dependency
+versions.
 
 The upstream baseline version is `1.5.0`; `0.1.0` is the first Hell release
 version. Hell requires Elixir `>= 1.18.0` instead of the upstream `~> 1.13`

@@ -7,7 +7,7 @@ defmodule Hell.ShutdownListener do
 
   use GenServer
 
-  @type state :: pid() | nil
+  @type state :: %{listener: pid(), acceptor_pool_supervisor: pid()} | nil
 
   @doc false
   @spec start_link({pid(), any()}) :: :ignore | {:error, any} | {:ok, pid}
@@ -29,16 +29,46 @@ defmodule Hell.ShutdownListener do
   @impl GenServer
   @spec handle_continue({:setup_listener_pid, pid()}, state) :: {:noreply, state}
   def handle_continue({:setup_listener_pid, server_pid}, nil) do
-    {:noreply, Hell.Server.listener_pid(server_pid)}
+    children =
+      server_pid
+      |> Supervisor.which_children()
+      |> Map.new(fn {id, pid, _, _} -> {id, pid} end)
+
+    {:noreply, Map.take(children, [:listener, :acceptor_pool_supervisor])}
   end
 
   @doc false
   @impl GenServer
   @spec terminate(reason, state) :: :ok
         when reason: :normal | :shutdown | {:shutdown, term} | term
-  def terminate(_reason, listener_pid) when is_pid(listener_pid) do
+  def terminate(_reason, %{listener: listener_pid, acceptor_pool_supervisor: pool_pid})
+      when is_pid(listener_pid) do
+    monitors =
+      for {_, supervisor, _, _} <- children(pool_pid),
+          is_pid(supervisor),
+          {:acceptor, acceptor, _, _} <- children(supervisor),
+          is_pid(acceptor),
+          do: Process.monitor(acceptor)
+
     Hell.Listener.stop(listener_pid)
+
+    # Let acceptors observe the closed listener and finish their telemetry spans
+    # before the parent tears down the pool. The existing child shutdown timeout
+    # still bounds this wait if an acceptor cannot finish.
+    Enum.each(monitors, fn monitor ->
+      receive do
+        {:DOWN, ^monitor, :process, _, _} -> :ok
+      end
+    end)
   end
 
   def terminate(_reason, _state), do: :ok
+
+  defp children(pid) when is_pid(pid) do
+    Supervisor.which_children(pid)
+  catch
+    :exit, {:noproc, _} -> []
+  end
+
+  defp children(_pid), do: []
 end

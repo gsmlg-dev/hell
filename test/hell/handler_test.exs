@@ -652,6 +652,7 @@ defmodule Hell.HandlerTest do
           1000 -> raise "synchronous recv was not started"
         end
 
+        send(state, {:sync_recv_started, self()})
         result = Hell.Socket.recv(socket, 0)
         send(state, {:sync_recv_result, self(), result})
 
@@ -681,8 +682,9 @@ defmodule Hell.HandlerTest do
           assert_receive {:sync_recv_ready, handler}, 1000
           monitor = Process.monitor(handler)
           send(handler, {:start_sync_recv, self()})
+          assert_receive {:sync_recv_started, ^handler}, 1000
 
-          # Exclude connection startup while keeping the original client deadline
+          # Exclude setup and handler scheduling while keeping the original client deadline
           # around the synchronous receive and subsequent socket closure.
           assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
 

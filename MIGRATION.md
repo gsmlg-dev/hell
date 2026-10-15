@@ -6,9 +6,13 @@ Hell package was `0.1.0`, published locally by the fork maintainer. Version
 `0.1.1` uses a gated manual workflow for publication. Historical Thousand Island releases
 remain upstream releases.
 
-The migration changes project identities without changing socket behavior,
-transport options, default values, lifecycle callbacks, timeout handling,
+The initial identity migration changed project identities without changing socket
+behavior, transport options, default values, lifecycle callbacks, timeout handling,
 supervision strategies or cleanup. There are no compatibility aliases or shims.
+Hell `0.1.1` intentionally changes shutdown to wait for acceptor cleanup before
+pool teardown, preventing missing stop events during orderly shutdown. This wait
+is bounded by the existing 5000ms shutdown-listener child bound and can add stop
+latency; forced termination at that bound can still interrupt cleanup.
 
 ## Dependencies and application identity
 
@@ -19,7 +23,7 @@ unchanged.
 Replace the `:thousand_island` dependency with `{:hell, "~> 0.1.1"}` after the
 next release is published. Until then, use the available `0.1.0` package, a local
 path dependency or a reviewed commit from `gsmlg-dev/hell` as shown in
-[README.md](README.md). The canonical `v0.1.1` tag is an alternative once created.
+[README.md](https://github.com/gsmlg-dev/hell/blob/main/README.md). The canonical `v0.1.1` tag is an alternative once created.
 Do not substitute an unrelated package or publish to `thousand_island`.
 
 Replace `ThousandIsland` and `ThousandIsland.*` with `Hell` and `Hell.*` throughout
@@ -50,8 +54,12 @@ provided between the former modules and Hell.
 ## Telemetry and logging
 
 Change telemetry subscriptions from `[:thousand_island | suffix]` to
-`[:hell | suffix]`. All event suffixes, measurements, metadata keys and structures,
-span relationships and emission timing are preserved. For example:
+`[:hell | suffix]`. The initial identity migration preserved emission timing.
+Event names after that prefix change, suffixes, measurements, metadata keys and
+structures, and span relationships remain unchanged. Hell `0.1.1` waits for
+acceptor cleanup before pool teardown so existing stop events can be emitted
+during orderly shutdown; this can change shutdown timing without guaranteeing
+absolute event timing or ordering. For example:
 
 ```elixir
 :telemetry.attach(
@@ -112,5 +120,5 @@ telemetry and release names. The [LICENSE](https://github.com/gsmlg-dev/hell/blo
 adding copyright (c) 2026 GSMLG Limited for Hell fork contributions.
 
 Version `0.1.1` requires workflow validation and explicit publication through
-the gated flow described in [RELEASE.md](RELEASE.md). These migration instructions
+the gated flow described in [RELEASE.md](https://github.com/gsmlg-dev/hell/blob/main/RELEASE.md). These migration instructions
 do not imply that its publication or remote validation has completed.

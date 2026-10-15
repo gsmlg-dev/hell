@@ -60,10 +60,11 @@ unchanged apart from the identity migration.
 The Intel runner attempt also failed: suites took 43–66 seconds, compared with
 13.7–17.3 seconds on the initial ARM64 run and roughly 13 seconds on Linux.
 Intel failures included 100ms socket read/connect checks and log capture in
-addition to the previously observed timer assertions. These newly observed
-failures have not been reproduced against upstream. Limiting ExUnit concurrency
-on Intel reduced the two inspected OTP 26 suites to 29.5 and 33 seconds, but
-788/931 still failed; neither suite showed the newly observed socket failures.
+addition to the previously observed timer assertions. At that stage, these newly
+observed failures had not been reproduced against upstream. Limiting ExUnit
+concurrency on Intel reduced the two inspected OTP 26 suites to 29.5 and 33
+seconds, but 788/931 still failed; neither suite showed the newly observed socket
+failures.
 
 The matrix returns to ARM64 for its observed lower suite duration, retaining
 `mix test --max-cases 1` on macOS to reduce contention between async test modules.
@@ -71,11 +72,11 @@ Linux retains `mix test`. All six toolchain pairs, tests and assertions remain;
 subsequent pre-repair runs still included handler timing failures at 619, 657,
 788 and 931.
 
-The handler fixture repair synchronizes the synchronous receive test before
-starting its receive and immediately checks socket closure within the original
-100ms client deadline after signaling the handler to start. It then verifies the
-actual receive-timeout result, handler termination and captured logs. Its original
-50ms server timeout remains. The recurring-send
+The synchronous receive fixture uses readiness/start synchronization, then waits
+for a handler-entry acknowledgment sent immediately before `Hell.Socket.recv/2`.
+Only then does it check closure with the original 100ms client receive timeout.
+It verifies the actual receive-timeout result, handler termination and captured
+logs afterward. Its original 50ms server timeout remains. The recurring-send
 fixture uses an absolute elapsed-time schedule with catch-up instead of adding
 scheduler delay after every send. It sends an `A` every 2ms because the existing
 `Enum.join/1` assertion renders each received byte as `"65"`; the 500ms server
@@ -89,12 +90,30 @@ schedules remain six pings over 300ms and four pings over 320ms. Timer-reset log
 capture starts before connection and all ping traffic; the original socket,
 closure and log assertions remain. These deadlines cannot guarantee timely
 execution during OS suspension.
-These changes affect test fixtures only. There are no test filters, failure
-retries, runtime changes or altered socket timeouts. Historical failures remain
+These handler fixture changes do not alter production behavior or socket
+timeouts; there are no test filters or failure retries. Historical failures remain
 part of the investigation record; the fixture repair does not establish that
-every observed failure is resolved. Before publication, the full remote matrix
-must pass on the final release commit, including ARM64 with its concurrency
-limit; retain actual run results with the release evidence.
+every observed failure is resolved. Before entry acknowledgment was added, local
+repetition of the synchronous 100ms client-deadline test failed on run 24 after 23
+passes. Entry acknowledgment corrects a demonstrated fixture timing boundary; it
+does not establish the cause of every spontaneous failure. Before publication,
+the full remote matrix must pass on the final release commit, including ARM64
+with its concurrency limit; retain actual run results with the release evidence.
+
+Hell `0.1.1` also intentionally corrects an inherited production shutdown race:
+pool teardown could kill an acceptor before it emitted its stop telemetry event.
+The same failure occurred on upstream baseline `e3eb2a7` in
+[run 38260511240, attempt 1, job 114849483327](https://github.com/mtrudel/thousand_island/actions/runs/38260511240/job/114849483327)
+on Linux with Elixir 1.19 / OTP 27; upstream attempt 2 passed.
+`ShutdownListener` now snapshots and monitors live acceptor tasks before stopping
+the listener as before, then waits for their exit before pool teardown. Acceptors
+emit their existing stop event once during normal cleanup; no new emitter is
+added. The existing 5000ms shutdown-listener child bound still limits this wait;
+acceptor cleanup can add shutdown latency. Dependency versions, socket options,
+connection ownership and configured connection shutdown timeouts are unchanged.
+The deterministic suspended-acceptor regression failed
+before the source correction: the acceptor was killed and stop returned before
+cleanup. Patch validation and the final full-matrix gate remain required.
 
 Actions are pinned to inspected stable release commits: checkout v7.0.1,
 cache v6.1.0, upload-artifact v7.0.2 and setup-beam v1.24.1.
