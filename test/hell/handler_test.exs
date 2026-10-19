@@ -684,12 +684,12 @@ defmodule Hell.HandlerTest do
           send(handler, {:start_sync_recv, self()})
           assert_receive {:sync_recv_started, ^handler}, 1000
 
-          # Exclude setup and handler scheduling while keeping the original client deadline
-          # around the synchronous receive and subsequent socket closure.
-          assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
-
           assert_receive {:sync_recv_result, ^handler, {:error, :timeout}}, 1000
           assert_receive {:DOWN, ^monitor, :process, ^handler, {:shutdown, :read_timeout}}, 1000
+
+          # Bound wire-close observation after the timeout and handler teardown complete.
+          # The started acknowledgement precedes recv and cannot exclude later scheduling delays.
+          assert :gen_tcp.recv(client, 0, read_timeout * 2) == {:error, :closed}
         end)
 
       # Ensure the initial message was received

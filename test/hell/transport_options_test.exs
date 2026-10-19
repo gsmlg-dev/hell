@@ -59,7 +59,16 @@ defmodule Hell.TransportOptionsTest do
     options = [{:raw, level, keepalive, enabled}, {:raw, level, broadcast, enabled}]
     {:ok, listener} = Hell.Transports.TCP.listen(0, options)
     on_exit(fn -> Hell.Transports.TCP.close(listener) end)
-    assert {:ok, ^options} = Hell.Transports.TCP.getopts(listener, options)
+
+    assert {:ok,
+            [
+              {:raw, ^level, ^keepalive, <<keepalive_enabled::native-32>>},
+              {:raw, ^level, ^broadcast, <<broadcast_enabled::native-32>>}
+            ]} = Hell.Transports.TCP.getopts(listener, options)
+
+    # Darwin returns the enabled option's bitmask; Linux returns 1.
+    assert keepalive_enabled != 0
+    assert broadcast_enabled != 0
   end
 
   test "TCP and SSL omit the nodelay default only for Unix domain sockets" do
