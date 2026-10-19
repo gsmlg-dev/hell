@@ -2,8 +2,8 @@
 
 This fork is based on upstream commit
 `e3eb2a7a05f98d79436abcefd8c954da2f8b05c0` (upstream version `1.5.0`). The first
-Hell package was `0.1.0`, published locally by the fork maintainer. Version
-`0.1.1` uses a gated manual workflow for publication. Historical Thousand Island releases
+Hell package was `0.1.0`, published locally by the fork maintainer. Subsequent
+versions use a gated manual workflow for publication. Historical Thousand Island releases
 remain upstream releases.
 
 The initial identity migration changed project identities without changing socket
@@ -14,16 +14,30 @@ pool teardown, preventing missing stop events during orderly shutdown. This wait
 is bounded by the existing 5000ms shutdown-listener child bound and can add stop
 latency; forced termination at that bound can still interrupt cleanup.
 
+## Hell 0.1.2 compatibility
+
+Existing handler callbacks, custom handler readiness messages and required
+transport callbacks are unchanged. Custom transports may implement optional
+`upgrade/3` to receive the configured handshake timeout; transports with only
+`upgrade/2` keep their existing behavior. Built-in TLS upgrades now honor
+`handshake_timeout`, including `:infinity`. Upgrade read timeout overrides use
+the network timer, independently of local GenServer messages.
+
+Bare `:list` can no longer override the required binary mode. This enforces the
+documented transport contract; applications relying on character lists from
+that accidental override must accept binaries. Supervisor recovery and incomplete
+socket handoff cleanup now preserve server availability and connection capacity.
+
 ## Dependencies and application identity
 
 Hell requires Elixir `>= 1.18.0`, replacing the upstream `~> 1.13` requirement.
 Upgrade older consuming toolchains before migrating; dependency versions remain
 unchanged.
 
-Replace the `:thousand_island` dependency with `{:hell, "~> 0.1.1"}` after the
-next release is published. Until then, use the available `0.1.0` package, a local
-path dependency or a reviewed commit from `gsmlg-dev/hell` as shown in
-[README.md](https://github.com/gsmlg-dev/hell/blob/main/README.md). The canonical `v0.1.1` tag is an alternative once created.
+Replace the `:thousand_island` dependency with `{:hell, "~> 0.1.2"}`. A local
+path dependency or a reviewed commit from `gsmlg-dev/hell` can be used as shown in
+[README.md](https://github.com/gsmlg-dev/hell/blob/main/README.md). The canonical
+`v0.1.2` tag is another alternative.
 Do not substitute an unrelated package or publish to `thousand_island`.
 
 Replace `ThousandIsland` and `ThousandIsland.*` with `Hell` and `Hell.*` throughout

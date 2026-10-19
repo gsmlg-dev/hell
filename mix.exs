@@ -4,7 +4,7 @@ defmodule Hell.MixProject do
   def project do
     [
       app: :hell,
-      version: "0.1.1",
+      version: "0.1.2",
       elixir: ">= 1.18.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

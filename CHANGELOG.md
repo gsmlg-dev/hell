@@ -1,5 +1,24 @@
 # Changelog
 
+## Hell 0.1.2
+
+- Preserve the listening socket when the acceptor pool restarts, so supervision
+  can recover without taking down the server.
+- Clean up handlers whose acceptor exits before completing socket handoff,
+  preserving connection capacity across suspension and acceptor failures.
+- Apply `handshake_timeout` to TCP-to-TLS upgrades. Add an optional transport
+  `upgrade/3` callback while retaining support for existing `upgrade/2` transports.
+- Honor one-shot and persistent read timeout overrides after transport upgrades,
+  independently of GenServer mailbox timeouts.
+- Accept raw socket options without merging distinct native options.
+- Enforce the documented binary mode for bare `:list` and `:binary` aliases as
+  well as `mode` tuples on TCP and TLS listeners.
+
+Existing handler callbacks, startup/readiness messages and required transport
+callbacks remain compatible. Stalled TLS upgrades now close after the configured
+handshake deadline; `handshake_timeout: :infinity` restores unbounded waiting.
+Callers relying on the unintended `:list` override now receive binary data.
+
 ## Hell 0.1.1
 
 - Add copyright (c) 2026 GSMLG Limited for Hell fork contributions while retaining

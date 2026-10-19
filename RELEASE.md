@@ -3,7 +3,7 @@
 Hell targets `gsmlg-dev/hell`, OTP application `:hell` and Hex package `hell`.
 It is derived from Thousand Island at upstream version `1.5.0`. Hell `0.1.0`
 was published locally by the fork maintainer and its Hex package and HexDocs
-are available. `mix.exs` declares version `0.1.1`; publication uses the gated
+are available. `mix.exs` declares version `0.1.2`; publication uses the gated
 manual workflow. Fork release tags use the Hell identity beginning
 with `v0.1.1`; upstream commit history and historical release records remain
 preserved, without treating upstream releases as Hell releases.
@@ -133,7 +133,7 @@ mix dialyzer
 mix test
 mix docs
 mix hex.build
-bash scripts/artifact_smoke.sh hell-0.1.1.tar 0.1.1
+bash scripts/artifact_smoke.sh hell-0.1.2.tar 0.1.2
 ```
 
 The smoke script verifies the tarball's Hex package name, application and version,
@@ -160,8 +160,8 @@ compile, check formatting, run the existing suite, build docs and the Hex packag
 smoke-test the tarball and upload candidate artifacts. Neither mode changes
 versions, creates commits/tags/GitHub releases or pushes Git refs.
 
-For Hell `0.1.1`, dispatch this workflow **from `main`** in `gsmlg-dev/hell`
-with `version=0.1.1`, `git_ref=v0.1.1` and `publish=true` after the
+For Hell `0.1.2`, dispatch this workflow **from `main`** in `gsmlg-dev/hell`
+with `version=0.1.2`, `git_ref=v0.1.2` and `publish=true` after the
 trusted tag is created. Selecting `publish=true` is the explicit publication
 opt-in; `git_ref=main` cannot publish. The tag must point at the checked-out commit,
 which must be an ancestor of `origin/main`. Repository, workflow event/ref,
@@ -180,10 +180,11 @@ they are not an additional prerequisite imposed by this release implementation.
 Immediately before publication, the read-only lookup of
 `https://hex.pm/api/packages/hell` must either return HTTP 404 for first-package
 creation or return valid JSON naming `hell` with `meta.links.GitHub` exactly
-`https://github.com/gsmlg-dev/hell`. The package now exists with version `0.1.0`;
+`https://github.com/gsmlg-dev/hell`. The package already exists with earlier Hell
+releases;
 its earlier 404 on 2026-10-14 at 13:15 UTC was only a historical availability check.
 The requested version must be unpublished: for this release,
-`https://hex.pm/api/packages/hell/releases/0.1.1` must return HTTP 404.
+`https://hex.pm/api/packages/hell/releases/0.1.2` must return HTTP 404.
 Mismatched package metadata, occupied release versions, network errors or
 unverified responses abort publication. The publishing credential must have
 permission for the existing package; metadata validation is not credential
