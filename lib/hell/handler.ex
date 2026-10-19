@@ -695,9 +695,7 @@ defmodule Hell.Handler do
   defp handle_switch_continuation(socket, module, upgrade_opts, state, timeout_or_continue) do
     case Hell.Socket.upgrade(socket, module, upgrade_opts) do
       {:ok, socket} ->
-        _ = Hell.Socket.setopts(socket, active: :once)
-        socket = arm_read_timer(socket, socket.read_timeout)
-        {:noreply, {socket, state}, timeout_or_continue}
+        handle_continuation({:continue, state, timeout_or_continue}, socket)
 
       {:error, reason} ->
         {:stop, {:shutdown, {:upgrade, reason}}, {socket, state}}

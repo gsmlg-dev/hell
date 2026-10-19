@@ -3,6 +3,64 @@ defmodule Hell.TransportOptionsTest do
 
   @certfile Path.expand("../support/cert.pem", __DIR__)
   @keyfile Path.expand("../support/key.pem", __DIR__)
+  @cacertfile Path.expand("../support/ca.pem", __DIR__)
+
+  defmodule CaptureData do
+    use Hell.Handler
+
+    @impl Hell.Handler
+    def handle_data(data, _socket, test_pid) do
+      send(test_pid, {:received, data})
+      {:close, test_pid}
+    end
+  end
+
+  for {transport, client, required_options} <- [
+        {Hell.Transports.TCP, :gen_tcp, []},
+        {Hell.Transports.SSL, :ssl, [certfile: @certfile, keyfile: @keyfile]}
+      ],
+      mode_options <- [[:list], [:binary], [mode: :list]] do
+    test "#{inspect(transport)} receives binaries with #{inspect(mode_options)}" do
+      {:ok, server} =
+        start_supervised(
+          {Hell,
+           port: 0,
+           num_acceptors: 1,
+           transport_module: unquote(transport),
+           transport_options: unquote(mode_options ++ required_options),
+           handler_module: CaptureData,
+           handler_options: self()}
+        )
+
+      {:ok, {_address, port}} = Hell.listener_info(server)
+
+      client_options =
+        if unquote(client) == :ssl do
+          [:binary, active: false, verify: :verify_peer, cacertfile: @cacertfile]
+        else
+          [:binary, active: false]
+        end
+
+      {:ok, client} = unquote(client).connect(~c"localhost", port, client_options, 5_000)
+      on_exit(fn -> unquote(client).close(client) end)
+      :ok = unquote(client).send(client, "hello")
+      assert_receive {:received, "hello"}, 1_000
+    end
+  end
+
+  test "TCP preserves distinct raw socket options" do
+    {level, keepalive, broadcast} =
+      case :os.type() do
+        {:unix, :linux} -> {1, 9, 6}
+        {:unix, :darwin} -> {0xFFFF, 0x0008, 0x0020}
+      end
+
+    enabled = <<1::native-32>>
+    options = [{:raw, level, keepalive, enabled}, {:raw, level, broadcast, enabled}]
+    {:ok, listener} = Hell.Transports.TCP.listen(0, options)
+    on_exit(fn -> Hell.Transports.TCP.close(listener) end)
+    assert {:ok, ^options} = Hell.Transports.TCP.getopts(listener, options)
+  end
 
   test "TCP and SSL omit the nodelay default only for Unix domain sockets" do
     unix_path =

@@ -92,8 +92,12 @@ defmodule Hell.Transports.SSL do
 
   @impl Hell.Transport
   @spec upgrade(socket(), options()) :: Hell.Transport.on_upgrade()
-  def upgrade(socket, opts) do
-    case :ssl.handshake(socket, opts) do
+  def upgrade(socket, opts), do: upgrade(socket, opts, :infinity)
+
+  @impl Hell.Transport
+  @spec upgrade(socket(), options(), timeout()) :: Hell.Transport.on_upgrade()
+  def upgrade(socket, opts, timeout) do
+    case :ssl.handshake(socket, opts, timeout) do
       {:ok, socket, _protocol_extensions} -> {:ok, socket}
       other -> other
     end

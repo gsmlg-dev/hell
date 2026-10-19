@@ -122,6 +122,8 @@ defmodule Hell.Transport do
         default_nodelay_options(user_options) ++
         @default_options,
       fn
+        mode when mode in [:binary, :list] -> :mode
+        {:raw, level, option, _value} -> {:raw, level, option}
         {key, _} when is_atom(key) -> key
         key when is_atom(key) -> key
       end
@@ -179,6 +181,16 @@ defmodule Hell.Transport do
   `{:error, :unsupported_upgrade}`.
   """
   @callback upgrade(socket(), term()) :: on_upgrade()
+
+  @doc """
+  Performs an upgrade of an existing connection, waiting at most `timeout` milliseconds
+  for handshaking to complete. This optional callback is preferred over `c:upgrade/2`
+  when implemented. Existing transports implementing only `c:upgrade/2` remain supported,
+  but cannot honor the configured `handshake_timeout` during upgrades through this callback.
+  """
+  @callback upgrade(socket(), term(), timeout()) :: on_upgrade()
+
+  @optional_callbacks upgrade: 3
 
   @doc """
   Transfers ownership of the given socket to the given process. This will always

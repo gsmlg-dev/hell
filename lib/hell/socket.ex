@@ -82,14 +82,22 @@ defmodule Hell.Socket do
   @doc """
   Upgrades the transport of the socket to use the specified transport module, performing any client
   handshaking that may be required. The passed options are blindly passed through to the new
-  transport module.
+  transport module. If the transport implements `c:Hell.Transport.upgrade/3`,
+  `handshake_timeout` bounds its handshake; otherwise `c:Hell.Transport.upgrade/2` is used.
 
   This is normally called internally by `Hell.Handler` and does not need to be
   called by implementations which are based on `Hell.Handler`
   """
   @spec upgrade(t(), module(), term()) :: Hell.Transport.on_upgrade()
   def upgrade(%__MODULE__{} = socket, module, opts) when is_atom(module) do
-    case module.upgrade(socket.socket, opts) do
+    result =
+      if Code.ensure_loaded?(module) and function_exported?(module, :upgrade, 3) do
+        module.upgrade(socket.socket, opts, socket.handshake_timeout)
+      else
+        module.upgrade(socket.socket, opts)
+      end
+
+    case result do
       {:ok, updated_socket} ->
         {:ok, %{socket | socket: updated_socket, transport_module: module}}
 

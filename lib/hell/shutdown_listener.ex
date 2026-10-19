@@ -41,8 +41,18 @@ defmodule Hell.ShutdownListener do
   @impl GenServer
   @spec terminate(reason, state) :: :ok
         when reason: :normal | :shutdown | {:shutdown, term} | term
-  def terminate(_reason, %{listener: listener_pid, acceptor_pool_supervisor: pool_pid})
-      when is_pid(listener_pid) do
+  def terminate(:shutdown, %{listener: listener_pid, acceptor_pool_supervisor: pool_pid})
+      when is_pid(listener_pid) and is_pid(pool_pid) do
+    if Process.alive?(pool_pid) do
+      stop_listener(listener_pid, pool_pid)
+    end
+
+    :ok
+  end
+
+  def terminate(_reason, _state), do: :ok
+
+  defp stop_listener(listener_pid, pool_pid) do
     monitors =
       for {_, supervisor, _, _} <- children(pool_pid),
           is_pid(supervisor),
@@ -61,8 +71,6 @@ defmodule Hell.ShutdownListener do
       end
     end)
   end
-
-  def terminate(_reason, _state), do: :ok
 
   defp children(pid) when is_pid(pid) do
     Supervisor.which_children(pid)

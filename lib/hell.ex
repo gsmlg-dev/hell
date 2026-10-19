@@ -149,6 +149,9 @@ defmodule Hell do
   slot within `num_connections`) indefinitely. This value is only consulted by transports which
   perform a handshake (it is ignored by `Hell.Transports.TCP`, and by custom transports
   which do not implement the optional `c:Hell.Transport.handshake/2` callback).
+  This bound also applies to transport upgrades through `c:Hell.Transport.upgrade/3`;
+  custom transports implementing only `c:Hell.Transport.upgrade/2` retain their existing
+  upgrade behavior.
   Defaults to `5_000` (the same default that Ranch uses); pass `:infinity` to restore the
   previous unbounded behaviour
   * `shutdown_timeout`: How long to wait for existing client connections to complete before

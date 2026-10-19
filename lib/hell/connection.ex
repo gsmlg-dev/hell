@@ -27,11 +27,17 @@ defmodule Hell.Connection do
     # First, capture the start time for telemetry purposes
     start_time = Hell.Telemetry.monotonic_time()
 
+    acceptor = self()
+    handoff_ref = make_ref()
+
     # Start by defining the worker process which will eventually handle this socket
     child_spec =
       {server_config.handler_module,
        {server_config.handler_options, server_config.genserver_options}}
       |> Supervisor.child_spec(shutdown: server_config.shutdown_timeout)
+      |> then(fn spec ->
+        %{spec | start: {__MODULE__, :start_handler, [spec.start, acceptor, handoff_ref]}}
+      end)
 
     # Then try to create it
     case start_child_with_retry(
@@ -40,28 +46,26 @@ defmodule Hell.Connection do
            server_config.max_connections_retry_wait,
            server_config.max_connections_retry_count
          ) do
-      {:ok, pid} ->
-        # Since this process owns the socket at this point, it needs to be the
-        # one to make this call. connection_pid is sitting and waiting for the
-        # word from us to start processing, in order to ensure that this call
-        # has succeeded before it receives the ready message.
+      result when elem(result, 0) == :ok and tuple_size(result) in [2, 3] ->
+        pid = elem(result, 1)
+
+        guard =
+          receive do
+            {^handoff_ref, guard} -> guard
+          end
+
         case handler_config.transport_module.controlling_process(raw_socket, pid) do
           :ok ->
-            # Now that we have transferred ownership over to the new process, send a message to the
-            # new process with all the info it needs to start working with the socket (note that the
-            # new process will still need to handshake with the remote end). handler_config was
-            # pre-created by the acceptor to avoid Map.take on every connection.
+            # The guard forwards readiness itself. Messages and the acceptor's DOWN signal are
+            # ordered, so a successful handoff survives the acceptor exiting immediately after it.
             send(
-              pid,
-              {:hell_ready, raw_socket, handler_config, acceptor_span, start_time}
+              guard,
+              {:ready, {:hell_ready, raw_socket, handler_config, acceptor_span, start_time}}
             )
 
             :ok
 
           {:error, reason} ->
-            # Ownership remains with this process when the transfer fails. Close from here, then
-            # terminate the idle handler as well; terminating it also closes the socket if a custom
-            # transport transferred ownership despite returning an error.
             _ = handler_config.transport_module.close(raw_socket)
             _ = DynamicSupervisor.terminate_child(sup_pid, pid)
             {:error, {:controlling_process, reason}}
@@ -88,6 +92,49 @@ defmodule Hell.Connection do
         _ = handler_config.transport_module.close(raw_socket)
         {:error, {:spawn_error, other}}
     end
+  end
+
+  @doc false
+  @spec start_handler({module(), atom(), [term()]}, pid(), reference()) ::
+          Supervisor.on_start_child()
+  def start_handler({module, function, arguments}, acceptor, handoff_ref) do
+    result = apply(module, function, arguments)
+
+    case result do
+      result when elem(result, 0) == :ok and tuple_size(result) in [2, 3] ->
+        handler = elem(result, 1)
+        guard = spawn(__MODULE__, :guard_handoff, [acceptor, handler])
+        send(acceptor, {handoff_ref, guard})
+
+      _ ->
+        :ok
+    end
+
+    result
+  end
+
+  @doc false
+  @spec guard_handoff(pid(), pid()) :: :ok
+  def guard_handoff(acceptor, handler) do
+    acceptor_monitor = Process.monitor(acceptor)
+    handler_monitor = Process.monitor(handler)
+
+    receive do
+      {:ready, message} ->
+        Process.demonitor(acceptor_monitor, [:flush])
+        Process.demonitor(handler_monitor, [:flush])
+        send(handler, message)
+
+      {:DOWN, ^acceptor_monitor, :process, ^acceptor, _} ->
+        # Startup did not finish. The child may trap exits, so guarantee that its socket and
+        # admission slot are released instead of leaving it waiting forever for readiness.
+        Process.exit(handler, :kill)
+
+      {:DOWN, ^handler_monitor, :process, ^handler, _} ->
+        :ok
+    end
+
+    :ok
   end
 
   defp start_child_with_retry(sup_pid, child_spec, retry_wait, retries) do
