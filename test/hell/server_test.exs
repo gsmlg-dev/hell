@@ -167,20 +167,25 @@ defmodule Hell.ServerTest do
         start_handler(LongEcho,
           num_acceptors: 1,
           num_connections: 1,
-          max_connections_retry_wait: 100
+          max_connections_retry_count: 0
         )
 
+      # Prove the first connection occupies the only slot before triggering rejection.
       {:ok, client} = :gen_tcp.connect(:localhost, port, active: false)
-      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
-
       :ok = :gen_tcp.send(client, "HELLO")
-      :ok = :gen_tcp.send(other_client, "BONJOUR")
+      assert :gen_tcp.recv(client, 0, 1000) == {:ok, ~c"HELLO"}
+
+      # Retry timing is covered above; this test observes rejection and its telemetry directly.
+      {:ok, other_client} = :gen_tcp.connect(:localhost, port, active: false)
+      assert :gen_tcp.recv(other_client, 0, 1000) == {:error, :closed}
 
       assert_receive {:telemetry, [:hell, :acceptor, :spawn_error], measurements, metadata},
                      1000
 
       assert measurements ~> %{monotonic_time: integer()}
       assert metadata ~> %{handler: LongEcho, telemetry_span_context: reference()}
+      :gen_tcp.close(client)
+      :gen_tcp.close(other_client)
     end
   end
 
